@@ -2,7 +2,7 @@
 (* Distributed under the terms of CeCILL-B.                                  *)
 Require Import mathcomp.ssreflect.ssreflect.
 From mathcomp
-Require Import ssrfun ssrbool eqtype ssrnat seq choice.
+Require Import ssrfun ssrbool eqtype ssrnat seq choice div.
 
 (******************************************************************************)
 (*    The Finite interface describes Types with finitely many elements,       *)
@@ -189,6 +189,12 @@ Proof. by rewrite pmap_sub_uniq ?iota_uniq. Qed.
 
 Lemma mem_ord_enum i : i \in ord_enum.
 Proof. by rewrite -(mem_map ord_inj) val_ord_enum mem_iota ltn_ord. Qed.
+
+Lemma size_ord_enum : size ord_enum = n.
+Proof.
+  apply/eqP; rewrite size_pmap_sub -{3}(size_iota 0 n) -all_count.
+  by apply/allP => /= i; rewrite mem_iota add0n.
+Qed.
 
 End OrdinalSub.
 
@@ -427,12 +433,6 @@ Proof. by move=> lt_m; rewrite val_insubd lt_m. Qed.
 Lemma inord_val (i : 'I_n) : inord i = i.
 Proof. by rewrite /inord /insubd valK. Qed.
 
-Lemma enum_ordS : enum 'I_n = ord0 :: map (lift ord0) (enum 'I_n').
-Proof.
-apply: (inj_map val_inj); rewrite val_enum_ord /= -map_comp.
-by rewrite (map_comp (addn 1)) val_enum_ord -iota_addl.
-Qed.
-
 Lemma lift_max (i : 'I_n') : lift ord_max i = i :> nat.
 Proof. by rewrite /= /bump leqNgt ltn_ord. Qed.
 
@@ -458,16 +458,16 @@ Section RawMixin.
 Variable (T : eqType).
 
 Record mixin_of := Mixin {
-  mixin_base    : Countable.mixin_of T;
-  mixin_card    : nat;
-  mixin_index   : T -> 'I_mixin_card;
-  mixin_unindex : 'I_mixin_card -> T;
-  _ : cancel mixin_index mixin_unindex;
-  _ : cancel mixin_unindex mixin_index;
+  mixin_base   : Countable.mixin_of T;
+  mixin_card   : nat;
+  mixin_encode : T -> 'I_mixin_card;
+  mixin_decode : 'I_mixin_card -> T;
+  _ : cancel mixin_encode mixin_decode;
+  _ : cancel mixin_decode mixin_encode;
 }.
 
 Definition mixin_enum (m : mixin_of) :=
-  map (@mixin_unindex m) (ord_enum (mixin_card m)).
+  map (@mixin_decode m) (ord_enum (mixin_card m)).
 
 Definition axiom e := forall x : T, count_mem x e = 1.
 
@@ -475,6 +475,9 @@ Lemma uniq_enumP e : uniq e -> e =i T -> axiom e.
 Proof. by move=> Ue sT x; rewrite count_uniq_mem ?sT. Qed.
 
 End RawMixin.
+
+Arguments mixin_encode [T] m x.
+Arguments mixin_decode [T] m x.
 
 Section Mixins_eq.
 
@@ -503,10 +506,10 @@ Qed.
 Lemma EnumMixin_subproof2 (e : seq T) (H : @axiom T e) :
   cancel (@EnumMixin_g e) (@EnumMixin_f e H).
 Proof.
-  move => i; apply/eqP.
-  rewrite /EnumMixin_f /EnumMixin_g eqE /= index_uniq //.
+  move => i; apply val_inj.
+  rewrite /EnumMixin_f /EnumMixin_g /= index_uniq //.
   apply count_mem_uniq => x; rewrite H.
-  by apply/esym/eqP; rewrite eqb1; apply/count_memPn; rewrite H.
+  by case_eq (x \in e) => // /count_memPn; rewrite H.
 Qed.  
 
 End Mixins_eq.
@@ -583,6 +586,7 @@ Coercion countType : type >-> Countable.type.
 Canonical countType.
 Notation finType := type.
 Notation FinType T m := (@pack T _ m _ _ id _ id).
+Notation BijOrdMixin := BijOrdMixin.
 Notation FinMixin := EnumMixin.
 Notation UniqFinMixin := UniqMixin.
 Notation "[ 'finType' 'of' T 'for' cT ]" := (@clone T cT _ idfun)
@@ -600,6 +604,22 @@ Module EnumDef : EnumSig.
 Definition enum cT := mixin_enum (class cT).
 Definition enumDef := erefl enum.
 End EnumDef.
+
+Module Type BijSig.
+Definition card (cT : type) := mixin_card (class cT).
+Parameter encode : forall cT : type, cT -> 'I_(card cT).
+Parameter decode : forall cT : type, 'I_(card cT) -> cT.
+Axiom encodeDef : encode = fun cT => mixin_encode (class cT).
+Axiom decodeDef : decode = fun cT => mixin_decode (class cT).
+End BijSig.
+
+Module BijDef : BijSig.
+Definition card cT := mixin_card (class cT).
+Definition encode cT := mixin_encode (class cT).
+Definition decode cT := mixin_decode (class cT).
+Definition encodeDef := erefl encode.
+Definition decodeDef := erefl decode.
+End BijDef.
 
 Notation enum := EnumDef.enum.
 
@@ -869,6 +889,9 @@ Proof. by move <-; apply: eq_card. Qed.
 Lemma card0 : #|@pred0 T| = 0. Proof. by rewrite cardE enum0. Qed.
 
 Lemma cardT : #|T| = size (enum T). Proof. by rewrite cardE. Qed.
+
+Lemma cardT' : #|T| = Finite.BijDef.card T.
+Proof. by rewrite cardE enumT unlock size_map /= size_ord_enum. Qed.
 
 Lemma card1 x : #|pred1 x| = 1.
 Proof. by rewrite cardE enum1. Qed.
@@ -1183,6 +1206,35 @@ Arguments subset_eqP [T A B].
 Arguments card_uniqP [T s].
 Arguments properP [T A B].
 Prenex Implicits pred0P pred0Pn subsetP subsetPn subset_eqP card_uniqP.
+
+(* Redefine encoding and decoding function *)
+
+Section EncDecK.
+
+Variable (T : finType).
+
+Definition fin_encode : T -> 'I_#|T| :=
+  nosimpl (fun x => eq_rect_r ordinal (Finite.BijDef.encode x) (cardT' T)).
+
+Definition fin_decode : 'I_#|T| -> T :=
+  nosimpl (fun i => Finite.BijDef.decode (eq_rect _ ordinal i _ (cardT' T))).
+
+Lemma fin_encodeK : cancel fin_encode fin_decode.
+Proof.
+  move => x; rewrite /fin_encode /fin_decode.
+  rewrite Finite.BijDef.encodeDef Finite.BijDef.decodeDef rew_opp_r.
+  by case: (Finite.class T) => base [].
+Qed.
+
+Lemma fin_decodeK : cancel fin_decode fin_encode.
+Proof.
+  move => x; rewrite /fin_encode /fin_decode.
+  rewrite Finite.BijDef.encodeDef Finite.BijDef.decodeDef.
+  case: T x => T' [? [? ? ? ? ? H] ?] /= x.
+  by rewrite H rew_opp_l.
+Qed.
+
+End EncDecK.
 
 (**********************************************************************)
 (*                                                                    *)
@@ -1654,18 +1706,40 @@ End EqImage.
 
 (* Standard finTypes *)
 
-Lemma unit_enumP : Finite.axiom [::tt]. Proof. by case. Qed.
-Definition unit_finMixin := Eval hnf in FinMixin unit_enumP.
+Check BijOrdMixin.
+
+Lemma unit_fin_encodeK : cancel (fun _ : unit => ord0) (fun _ : 'I_1 => tt).
+Proof. by case. Qed.
+
+Lemma unit_fin_decodeK : cancel (fun _ : 'I_1 => tt) (fun _ : unit => ord0).
+Proof. by case => -[] //= H; apply/eqP; rewrite eqE. Qed.
+
+Definition unit_finMixin :=
+  Eval hnf in BijOrdMixin unit_fin_encodeK unit_fin_decodeK.
 Canonical unit_finType := Eval hnf in FinType unit unit_finMixin.
 Lemma card_unit : #|{: unit}| = 1.
-Proof. Admitted. (* by rewrite cardT enumT unlock. Qed. *)
+Proof. by rewrite cardT'. Qed.
 
+Definition bool_fin_encode (x : bool) :=
+  if x then @Ordinal 2 1 erefl else ord0.
 
-Lemma bool_enumP : Finite.axiom [:: true; false]. Proof. by case. Qed.
-Definition bool_finMixin := Eval hnf in FinMixin bool_enumP.
+Definition bool_fin_decode (i : 'I_2) :=
+  match i with
+  | Ordinal 0 _ => false
+  | _ => true
+  end.
+
+Lemma bool_fin_encodeK : cancel bool_fin_encode bool_fin_decode.
+Proof. by case. Qed.
+
+Lemma bool_fin_decodeK : cancel bool_fin_decode bool_fin_encode.
+Proof. by case => -[| []] //= H; apply/eqP; rewrite eqE. Qed.
+
+Definition bool_finMixin :=
+  Eval hnf in BijOrdMixin bool_fin_encodeK bool_fin_decodeK.
 Canonical bool_finType := Eval hnf in FinType bool bool_finMixin.
 Lemma card_bool : #|{: bool}| = 2.
-Proof. Admitted. (* by rewrite cardT enumT unlock. Qed. *)
+Proof. by rewrite cardT'. Qed.
 
 Local Notation enumF T := (Finite.enum T).
 
@@ -1673,16 +1747,36 @@ Section OptionFinType.
 
 Variable T : finType.
 
-Definition option_enum := None :: map some (enumF T).
+Definition option_fin_encode (x : option T) : 'I_#|T|.+1 :=
+  match x with
+  | None => ord0
+  | Some x' => rshift 1 (fin_encode x')
+  end.
 
-Lemma option_enumP : Finite.axiom option_enum.
-Proof. by case=> [x|]; rewrite /= count_map (count_pred0, enumP). Qed.
+Definition option_fin_decode (i : 'I_#|T|.+1) : option T :=
+  match @split 1 #|T| i with
+  | inl _ => None
+  | inr i' => Some (fin_decode i')
+  end.
 
-Definition option_finMixin := Eval hnf in FinMixin option_enumP.
+Lemma option_fin_encodeK : cancel option_fin_encode option_fin_decode.
+Proof.
+  by case => [x |]; rewrite /option_fin_decode;
+    case: splitP => //= [[[]] | k [] /val_inj <-] //; rewrite fin_encodeK.
+Qed.
+
+Lemma option_fin_decodeK : cancel option_fin_decode option_fin_encode.
+Proof.
+  move => i; apply/val_inj; rewrite /option_fin_decode.
+  by case: splitP => [[[]] | k H] //=; rewrite fin_decodeK.
+Qed.
+
+Definition option_finMixin :=
+  Eval hnf in BijOrdMixin option_fin_encodeK option_fin_decodeK.
 Canonical option_finType := Eval hnf in FinType (option T) option_finMixin.
 
 Lemma card_option : #|{: option T}| = #|T|.+1.
-Proof. Admitted. (* by rewrite !cardT !enumT {1}unlock /= !size_map. Qed. *)
+Proof. by rewrite [LHS]cardT'. Qed.
 
 End OptionFinType.
 
@@ -1876,27 +1970,38 @@ Canonical seq_sub_finType := Eval hnf in FinType sT (seq_sub_finMixin s).
 Canonical seq_sub_subFinType := Eval hnf in [subFinType of sT].
 
 Lemma card_seq_sub : uniq s -> #|{:sT}| = size s.
-Proof. Admitted.
-(*
-by move=> Us; rewrite cardE enumT -(size_map val) unlock val_seq_sub_enum.
+Proof.
+  move => Us.
+  rewrite cardE enumT -(size_map val) unlock
+          !size_map size_ord_enum /= /seq_sub_enum undup_id;
+    last by apply pmap_sub_uniq.
+  by rewrite size_pmap; apply/eqP; rewrite -all_count;
+     apply/allP => x H; rewrite insubT.
 Qed.
-*)
 
 End SeqFinType.
 
-(* Ordinals *)
+(* finType instance for Ordinal *)
 
-Definition ordinal_finMixin n :=
-  Eval hnf in UniqFinMixin (ord_enum_uniq n) (@mem_ord_enum n).
-Canonical ordinal_finType n := Eval hnf in FinType 'I_n (ordinal_finMixin n).
-Canonical ordinal_subFinType n := Eval hnf in [subFinType of 'I_n].
+Section OrdinalFinType.
+
+Variable n : nat.
+
+Lemma ordinal_fin_encdecK : @cancel 'I_n _ id id. Proof. by []. Qed.
+
+Definition ordinal_finMixin :=
+  Eval hnf in BijOrdMixin ordinal_fin_encdecK ordinal_fin_encdecK.
+Canonical ordinal_finType := Eval hnf in FinType 'I_n ordinal_finMixin.
+Canonical ordinal_subFinType := Eval hnf in [subFinType of 'I_n].
+
+End OrdinalFinType.
 
 Section OrdinalEnum.
 
 Variable n : nat.
 
 Lemma val_enum_ord : map val (enum 'I_n) = iota 0 n.
-Proof. Admitted. (* by rewrite enumT unlock val_ord_enum. Qed. *)
+Proof. by rewrite enumT unlock /Finite.mixin_enum -map_comp val_ord_enum. Qed.
 
 Lemma size_enum_ord : size (enum 'I_n) = n.
 Proof. by rewrite -(size_map val) val_enum_ord size_iota. Qed.
@@ -1915,6 +2020,13 @@ Proof. by apply: val_inj; apply: nth_enum_ord. Qed.
 Lemma index_enum_ord (i : 'I_n) : index i (enum 'I_n) = i.
 Proof.
 by rewrite -{1}(nth_ord_enum i i) index_uniq ?(enum_uniq, size_enum_ord).
+Qed.
+
+Lemma enum_ordS : enum 'I_n.+1 = ord0 :: map (lift ord0) (enum 'I_n).
+Proof.
+  apply: (inj_map val_inj).
+  by rewrite !enumT unlock /Finite.mixin_enum /= -!map_comp !/comp /=
+             /bump /= (map_comp (addn 1)) !val_ord_enum -iota_addl.
 Qed.
 
 End OrdinalEnum.
@@ -2044,26 +2156,63 @@ Section ProdFinType.
 
 Variable T1 T2 : finType.
 
-Definition prod_enum := [seq (x1, x2) | x1 <- enum T1, x2 <- enum T2].
-
-Lemma predX_prod_enum (A1 : pred T1) (A2 : pred T2) :
-  count [predX A1 & A2] prod_enum = #|A1| * #|A2|.
+Lemma prod_fin_encode_subproof m n (i : 'I_m) (j : 'I_n) : j + i * n < m * n.
 Proof.
-rewrite !cardE !size_filter -!enumT /prod_enum.
-elim: (enum T1) => //= x1 s1 IHs; rewrite count_cat {}IHs count_map /preim /=.
-by case: (x1 \in A1); rewrite ?count_pred0.
+  case: m i j => [| m] [i] //=; rewrite ltnS => Hi [j Hj] /=.
+  by rewrite mulSn -addSn; apply leq_add => //; apply leq_mul.
 Qed.
 
-Lemma prod_enumP : Finite.axiom prod_enum.
+Definition prod_fin_encode (x : T1 * T2) : 'I_(#|T1| * #|T2|) :=
+  Ordinal (prod_fin_encode_subproof (fin_encode x.1) (fin_encode x.2)).
+
+Lemma prod_fin_decode_subproof1 m n (i : 'I_(m * n)) : i %/ n < m.
 Proof.
-by case=> x1 x2; rewrite (predX_prod_enum (pred1 x1) (pred1 x2)) !card1.
+  case: i => /= i Hi.
+  have/ltn_pmul2r <-: 0 < n by case: n Hi => //; rewrite muln0.
+  apply: (leq_ltn_trans _ Hi); apply leq_trunc_div.
 Qed.
 
-Definition prod_finMixin := Eval hnf in FinMixin prod_enumP.
+Lemma prod_fin_decode_subproof2 m n (i : 'I_(m * n)) : i %% n < n.
+Proof. by apply ltn_pmod; case: n i => //; rewrite muln0; case. Qed.
+
+Definition prod_fin_decode (i : 'I_(#|T1| * #|T2|)) : T1 * T2 :=
+  (fin_decode (Ordinal (prod_fin_decode_subproof1 i)),
+   fin_decode (Ordinal (prod_fin_decode_subproof2 i))).
+
+Lemma prod_fin_encodeK : cancel prod_fin_encode prod_fin_decode.
+Proof.
+  case => x y; rewrite /prod_fin_encode /prod_fin_decode /=.
+  set i := Ordinal _; set j := Ordinal _.
+  suff H: ((i = fin_encode x) * (j = fin_encode y))%type
+    by rewrite !H !fin_encodeK.
+  subst i; subst j; split; apply/val_inj;
+    rewrite /= addnC (divnMDl, modnMDl) ?divn_small ?modn_small //.
+  by apply/card_gt0P; exists y.
+Qed.
+
+Lemma prod_fin_decodeK : cancel prod_fin_decode prod_fin_encode.
+Proof.
+  move => i; rewrite /prod_fin_encode /prod_fin_decode /= !fin_decodeK.
+  apply/val_inj => /=; by rewrite addnC -divn_eq.
+Qed.
+
+Definition prod_finMixin :=
+  Eval hnf in BijOrdMixin prod_fin_encodeK prod_fin_decodeK.
 Canonical prod_finType := Eval hnf in FinType (T1 * T2) prod_finMixin.
 
 Lemma cardX (A1 : pred T1) (A2 : pred T2) : #|[predX A1 & A2]| = #|A1| * #|A2|.
-Proof. Admitted. (* by rewrite -predX_prod_enum unlock size_filter unlock. Qed. *)
+Proof.
+  have/eq_card ->:
+      ([predX A1 & A2]) =i [seq (x, y) | x <- enum A1, y <- enum A2].
+    move => [x y]; rewrite !inE /=; apply/esym/allpairsP; case: ifP => /andP.
+    - by case => H H0; exists (x, y); rewrite !mem_enum.
+    - by move => H_ [] [x' y'] /= []; rewrite !mem_enum
+        => H0 H1 [Hx Hy]; subst x' y'; apply: H_.
+  suff/card_uniqP ->: uniq [seq (x, y) | x <- enum A1, y <- enum A2]
+    by rewrite size_allpairs -!cardE.
+  apply allpairs_uniq; try apply enum_uniq.
+  by case => [x y] [x' y'].
+Qed.
 
 Lemma card_prod : #|{: T1 * T2}| = #|T1| * #|T2|.
 Proof. by rewrite -cardX; apply: eq_card; case. Qed.
@@ -2095,12 +2244,15 @@ Canonical tag_finType := Eval hnf in FinType {i : I & T_ i} tag_finMixin.
 
 Lemma card_tagged :
   #|{: {i : I & T_ i}}| = sumn (map (fun i => #|T_ i|) (enum I)).
-Proof. Admitted.
-(*
-rewrite cardE !enumT {1}unlock size_flatten /shape -map_comp.
-by congr (sumn _); apply: eq_map => i; rewrite /= size_map -enumT -cardE.
+Proof.
+  have/eq_card ->: {: {i : I & T_ i}} =i tag_enum
+    by move => i; rewrite !inE; apply/esym/count_memPn; rewrite tag_enumP.
+  have/card_uniqP ->: uniq tag_enum
+    by apply count_mem_uniq => /= x; rewrite tag_enumP;
+       apply/esym/eqP; rewrite eqb1; apply/count_memPn; rewrite tag_enumP.
+  rewrite enumT size_flatten /shape -map_comp.
+  by congr (sumn _); apply: eq_map => i; rewrite /= size_map -enumT -cardE.
 Qed.
-*)
 
 End TagFinType.
 
@@ -2108,23 +2260,38 @@ Section SumFinType.
 
 Variables T1 T2 : finType.
 
-Definition sum_enum :=
-  [seq inl _ x | x <- enumF T1] ++ [seq inr _ y | y <- enumF T2].
+Definition sum_fin_encode (x : T1 + T2) : 'I_(#|T1| + #|T2|) :=
+  match x with
+    | inl x' => lshift #|T2| (fin_encode x')
+    | inr x' => rshift #|T1| (fin_encode x')
+  end.
 
-Lemma sum_enum_uniq : uniq sum_enum.
+Definition sum_fin_decode (i : 'I_(#|T1| + #|T2|)) : T1 + T2 :=
+  match split i with
+    | inl i' => inl (fin_decode i')
+    | inr i' => inr (fin_decode i')
+  end.
+
+Lemma sum_fin_encodeK : cancel sum_fin_encode sum_fin_decode.
 Proof.
-rewrite cat_uniq -!enumT !(enum_uniq, map_inj_uniq); try by move=> ? ? [].
-by rewrite andbT; apply/hasP=> [[_ /mapP[x _ ->] /mapP[]]].
+  case => x; rewrite /sum_fin_encode /sum_fin_decode; case: splitP => //= i.
+  - by move/val_inj => <-; rewrite fin_encodeK.
+  - by move => H; move: (ltn_ord (fin_encode x)); rewrite H ltnNge leq_addr.
+  - by move => H; move: (ltn_ord i); rewrite -H ltnNge leq_addr.
+  - by move/eqP; rewrite eqn_add2l; move/eqP/val_inj => <-; rewrite fin_encodeK.
 Qed.
 
-Lemma mem_sum_enum u : u \in sum_enum.
-Proof. by case: u => x; rewrite mem_cat -!enumT map_f ?mem_enum ?orbT. Qed.
+Lemma sum_fin_decodeK : cancel sum_fin_decode sum_fin_encode.
+Proof.
+  by move => i; rewrite /sum_fin_encode /sum_fin_decode;
+    case: splitP => j H; rewrite fin_decodeK; apply/val_inj.
+Qed.
 
-Definition sum_finMixin := Eval hnf in UniqFinMixin sum_enum_uniq mem_sum_enum.
+Definition sum_finMixin :=
+  Eval hnf in BijOrdMixin sum_fin_encodeK sum_fin_decodeK.
 Canonical sum_finType := Eval hnf in FinType (T1 + T2) sum_finMixin.
 
 Lemma card_sum : #|{: T1 + T2}| = #|T1| + #|T2|.
-Proof. Admitted. (* by rewrite !cardT !enumT {1}unlock size_cat !size_map. Qed. *)
-
+Proof. by rewrite (cardT' [finType of T1 + T2]). Qed.
 
 End SumFinType.

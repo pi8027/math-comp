@@ -1706,8 +1706,6 @@ End EqImage.
 
 (* Standard finTypes *)
 
-Check BijOrdMixin.
-
 Lemma unit_fin_encodeK : cancel (fun _ : unit => ord0) (fun _ : 'I_1 => tt).
 Proof. by case. Qed.
 

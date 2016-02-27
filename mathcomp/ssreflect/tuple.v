@@ -319,7 +319,7 @@ Proof. by apply: val_inj => /=; rewrite map_tnth_enum. Qed.
 Lemma tnth_ord_tuple i : tnth ord_tuple i = i.
 Proof.
 apply: val_inj; rewrite (tnth_nth i) -(nth_map _ 0) ?size_tuple //.
-by rewrite /= enumT unlock -map_comp /funcomp /= val_ord_enum nth_iota.
+by rewrite /= enumT unlock -map_comp !/comp /= val_ord_enum nth_iota.
 Qed.
 
 End UseFinTuple.
@@ -378,7 +378,7 @@ Variables (n : nat) (T : finType).
 Lemma fin_encodeP (x : n.-tuple T) :
   sumn [seq fin_encode (tnth x i) * #|T| ^ i | i : 'I_n <- enum 'I_n] < #|T| ^ n.
 Proof.
-  rewrite enumT Finite.EnumDef.enumDef /= -map_comp /funcomp /ord_enum.
+  rewrite enumT Finite.EnumDef.enumDef /= -map_comp !/comp /ord_enum.
   pose f i := if insub i is Some i' then fin_encode (tnth x i') : nat else 0.
   have ->:
     sumn [seq fin_encode (tnth x i) * #|T| ^ i | i : 'I_n <- pmap insub (iota 0 n)] =
@@ -403,38 +403,32 @@ Definition fin_decode (i : 'I_(#|T| ^ n)) : n.-tuple T :=
 Lemma fin_encodeK : cancel fin_encode fin_decode.
 Proof.
   move => xs; rewrite /fin_encode /fin_decode.
-  apply/val_inj => /=.
-  have ->: tval xs = [seq fintype.fin_decode (fintype.fin_encode x) | x <- xs]
-    by elim: (tval xs) => //= {xs} x xs {1}->; rewrite fin_encodeK.
-  rewrite map_comp [RHS]map_comp; congr map.
-  apply (inj_map val_inj).
-  rewrite -(map_tnth_enum xs) -!(map_comp val) -(map_comp _ (tnth _)) /funcomp.
-  apply eq_in_map => /= i _.
+  apply/eq_from_tnth => i.
+  rewrite tnth_map tnth_ord_tuple -(EncDecDef.fin_encodeK (tnth xs i)).
+  congr EncDecDef.fin_decode; apply/val_inj => //=.
   have HT : 0 < #|T| by apply/card_gt0P; exists (tnth xs i).
   have ->: forall (f : nat -> nat) (g : 'I_n -> nat),
       sumn [seq g j * f j | j : 'I_n <- enum 'I_n] =
       sumn [seq [fun j => if insub j is Some j' then g j' else 0] j * f j |
             j <- iota 0 n].
     move => f g.
-    rewrite enumT unlock -map_comp /funcomp /= /ord_enum.
+    rewrite enumT unlock -map_comp !/comp /= /ord_enum.
     by elim: iota => //= j js <-; case: insubP => //= j' _ ->.
   set f := [fun j => _].
-  have Hf1 j : f j < #|T| by simpl; case: (insub j) => //=.
-  have Hf2 : f i = fintype.fin_encode (tnth xs i)
-    by rewrite /= insubT // => H; congr (fintype.fin_encode (tnth _ _));
-       apply/val_inj.
-  move: f Hf1 Hf2 => [f] /= Hf1 Hf2.
-  rewrite -[n in iota 0 n](subnKC (ltn_ord i)) -{1}addn1 !iota_add !map_cat
-          !sumn_cat /= addn1 (addnC 0 i.+1) iota_addl -map_comp /funcomp
-          add0n addn0.
+  have Hf j : f j < #|T| by simpl; case: (insub j) => //=.
+  have <- : f i = EncDecDef.fin_encode (tnth xs i)
+    by rewrite /= insubT // => H; move/val_inj: (SubK [subType of 'I_n] H) ->.
+  case: f Hf => /= f Hf.
+  rewrite -{1}(subnKC (ltn_ord i)) -{1}addn1 !iota_add !map_cat !sumn_cat /=
+          addn1 (addnC 0 i.+1) iota_addl -map_comp !/comp add0n addn0.
   have ->:
     sumn [seq f (i.+1 + j) * #|T| ^ (i.+1 + j) | j <- iota 0 (n - i.+1)] =
     #|T| ^ (i.+1) * sumn [seq f (i.+1 + j) * #|T| ^ j | j <- iota 0 (n - i.+1)]
     by elim: iota => //= j js ->; rewrite expnD mulnCA mulnDr.
-  rewrite expnS -mulnAC addnC divnMDl; last by rewrite expn_gt0 HT.
-  rewrite mulnC modnMDl addnC divnMDl; last by rewrite expn_gt0 HT.
-  rewrite divn_small; first by rewrite addn0 modn_small.
-  by apply positional_notation_upper_bound.
+  rewrite expnS -mulnAC -addnA -mulnDl addnC divnMDl;
+    last by rewrite expn_gt0 HT.
+  rewrite divn_small; last by apply positional_notation_upper_bound.
+  by rewrite addn0 addnC mulnC modnMDl modn_small.
 Qed.
 
 Lemma fin_decodeK : cancel fin_decode fin_encode.
@@ -444,15 +438,15 @@ Proof.
   set xs := map _ _.
   have {xs} -> : xs = [seq (i %/ #|T| ^ j %% #|T|) * #|T| ^ j | j <- iota 0 n].
     subst xs.
-    rewrite {3}enumT Finite.EnumDef.enumDef /= -map_comp /funcomp /ord_enum.
+    rewrite {3}enumT Finite.EnumDef.enumDef /= -map_comp !/comp /ord_enum.
     have: forall i, i \in iota 0 n -> i < n by move => j; rewrite mem_iota.
     elim: iota => //= j js IH H.
     rewrite insubT; first by apply H; rewrite inE eqxx.
     move => H0 /=; rewrite {}IH;
       last by move => j' H1; apply H; rewrite inE H1 orbT.
-    by congr cons; rewrite tnth_map fintype.fin_decodeK /= tnth_ord_tuple.
+    by congr cons; rewrite tnth_map EncDecDef.fin_decodeK /= tnth_ord_tuple.
   case: i; elim: n => //= [[] |] // n' IH m H.
-  rewrite expn0 divn1 muln1 (iota_addl 1 0) -map_comp /funcomp.
+  rewrite expn0 divn1 muln1 (iota_addl 1 0) -map_comp !/comp.
   have ->:
     sumn [seq (m %/ #|T| ^ i.+1) %% #|T| * #|T| ^ i.+1 | i <- iota 0 n'] =
     sumn [seq (m %/ #|T| %/ #|T| ^ i) %% #|T| * #|T| ^ i | i <- iota 0 n'] *

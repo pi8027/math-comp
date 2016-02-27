@@ -56,7 +56,7 @@ Definition exp_finIndexType n := ordinal_finType n.
 Notation "T ^ n" := (@finfun_of (exp_finIndexType n) T (Phant _)) : type_scope.
 
 Local Notation fun_of_fin_def :=
-  (fun aT rT f x => tnth (@fgraph aT rT f) (enum_rank x)).
+  (fun aT rT f x => tnth (@fgraph aT rT f) (fin_encode x)).
 
 Local Notation finfun_def := (fun aT rT f => @Finfun aT rT (codom_tuple f)).
 
@@ -104,19 +104,19 @@ Implicit Types (f : fT) (R : pred rT).
 
 Canonical finfun_of_subType := Eval hnf in [subType of fT].
 
-Lemma tnth_fgraph f i : tnth (fgraph f) i = f (enum_val i).
-Proof. by rewrite [@fun_of_fin]unlock enum_valK. Qed.
+Lemma tnth_fgraph f i : tnth (fgraph f) i = f (fin_decode i).
+Proof. by rewrite [@fun_of_fin]unlock fin_decodeK. Qed.
 
 Lemma ffunE (g : aT -> rT) : finfun g =1 g.
 Proof.
 move=> x; rewrite [@finfun]unlock unlock tnth_map.
-by rewrite -[tnth _ _]enum_val_nth enum_rankK.
+by rewrite -[tnth _ _]fin_decode_nth fin_encodeK.
 Qed.
 
 Lemma fgraph_codom f : fgraph f = codom_tuple f.
 Proof.
 apply: eq_from_tnth => i; rewrite [@fun_of_fin]unlock tnth_map.
-by congr tnth; rewrite -[tnth _ _]enum_val_nth enum_valK.
+by congr tnth; rewrite -[tnth _ _]fin_decode_nth fin_decodeK.
 Qed.
 
 Lemma codom_ffun f : codom f = val f.
@@ -154,7 +154,7 @@ Arguments ffun_onP [aT rT R f].
 
 Lemma nth_fgraph_ord T n (x0 : T) (i : 'I_n) f : nth x0 (fgraph f) i = f i.
 Proof.
-by rewrite -{2}(enum_rankK i) -tnth_fgraph (tnth_nth x0) enum_rank_ord.
+by rewrite -{2}(fin_encodeK i) -tnth_fgraph (tnth_nth x0) ord_encode.
 Qed.
 
 Section Support.

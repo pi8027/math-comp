@@ -441,9 +441,9 @@ pose f_A (A : {set 'I_n}) := [tuple of mkseq (nth i0 (enum A)) m].
 have val_fA (A : {set 'I_n}) : #|A| = m -> val (f_A A) = enum A.
   by move=> Am; rewrite -[enum _](mkseq_nth i0) -cardE Am.
 have inc_A (A : {set 'I_n}) : sorted ltn (map val (enum A)).
-  rewrite -[enum _](eq_filter (mem_enum _)).
+  rewrite -[enum _](eq_filter (mem_enum _)) -enumT /=.
   rewrite -(eq_filter (mem_map val_inj _)) -filter_map.
-  by rewrite (sorted_filter ltn_trans) // unlock val_ord_enum iota_ltn_sorted.
+  by rewrite (sorted_filter ltn_trans) // -ord_enumE val_ord_enum iota_ltn_sorted.
 rewrite -!sum1dep_card (reindex_onto f_t f_A) /= => [|A]; last first.
   by move/eqP=> cardAm; apply/setP=> x; rewrite inE -(mem_enum (mem A)) -val_fA.
 apply: eq_bigl => t; apply/idP/idP=> [inc_t|]; last first.
@@ -469,7 +469,7 @@ have add_mnC t: val \o add_mn t =1 add_mn_nat t \o val.
 pose f_add t := [tuple of map (add_mn t) (ord_tuple m)].
 rewrite -card_ltn_sorted_tuples -!sum1dep_card (reindex f_add) /=.
   apply: eq_bigl => t; rewrite -map_comp (eq_map (add_mnC t)) map_comp.
-  rewrite enumT unlock val_ord_enum -{1}(drop0 t).
+  rewrite -ord_enumE val_ord_enum -{1}(drop0 t).
   have [m0 | m_gt0] := posnP m.
     by rewrite {2}m0 /= drop_oversize // size_tuple m0.
   have def_m := subnK m_gt0; rewrite -{2}def_m addn1 /= {1}/add_mn_nat.

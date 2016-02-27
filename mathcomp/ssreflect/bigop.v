@@ -966,7 +966,7 @@ Lemma big_mkord n (P : pred nat) F :
   \big[op/idx]_(0 <= i < n | P i) F i = \big[op/idx]_(i < n | P i) F i.
 Proof.
 rewrite /index_iota subn0 -(big_map (@nat_of_ord n)).
-by congr bigop; rewrite /index_enum unlock val_ord_enum.
+by congr bigop; rewrite /index_enum -enumT -ord_enumE val_ord_enum.
 Qed.
 
 Lemma big_nat_widen m n1 n2 (P : pred nat) F :
@@ -1206,7 +1206,7 @@ Lemma big_sumType (I1 I2 : finType) (P : pred (I1 + I2)) F :
         (\big[*%M/1]_(i | P (inl _ i)) F (inl _ i))
       * (\big[*%M/1]_(i | P (inr _ i)) F (inr _ i)).
 Proof.
-by rewrite /index_enum {1}[@Finite.enum]unlock /= big_cat !big_map.
+  by rewrite /index_enum -!enumT /= enum_sum big_cat !big_map.
 Qed.
 
 Lemma big_split_ord m n (P : pred 'I_(m + n)) F :

@@ -112,6 +112,16 @@ Definition finfun_of_set A := let: FinSet f := A in f.
 Definition set_of of phant T := set_type.
 Identity Coercion type_of_set_of : set_of >-> set_type.
 
+Lemma set_fin_encodeK :
+  cancel (fun x => fin_encode (finfun_of_set x))
+         (fun i => FinSet (fin_decode i)).
+Proof. by case => x; rewrite fin_encodeK. Qed.
+
+Lemma set_fin_decodeK :
+  cancel (fun i => FinSet (fin_decode i))
+         (fun x => fin_encode (finfun_of_set x)).
+Proof. by move => i; rewrite fin_decodeK. Qed.
+
 Canonical set_subType := Eval hnf in [newType for finfun_of_set].
 Definition set_eqMixin := Eval hnf in [eqMixin of set_type by <:].
 Canonical set_eqType := Eval hnf in EqType set_type set_eqMixin.
@@ -120,7 +130,8 @@ Canonical set_choiceType := Eval hnf in ChoiceType set_type set_choiceMixin.
 Definition set_countMixin := [countMixin of set_type by <:].
 Canonical set_countType := Eval hnf in CountType set_type set_countMixin.
 Canonical set_subCountType := Eval hnf in [subCountType of set_type].
-Definition set_finMixin := [finMixin of set_type by <:].
+Definition set_finMixin :=
+  Eval hnf in BijOrdMixin set_fin_encodeK set_fin_decodeK.
 Canonical set_finType := Eval hnf in FinType set_type set_finMixin.
 Canonical set_subFinType := Eval hnf in [subFinType of set_type].
 

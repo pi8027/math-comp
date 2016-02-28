@@ -244,7 +244,16 @@ Notation fT := {ffun aT -> rT}.
 Notation ffT := (finfun_type aT rT).
 Implicit Types (D : pred aT) (R : pred rT) (F : aT -> pred rT).
 
-Definition finfun_finMixin := [finMixin of ffT by <:].
+Lemma finfun_fin_encodeK :
+  cancel (fun x : fT => fin_encode (fgraph x)) (fun i => Finfun (fin_decode i)).
+Proof. by case => x; rewrite fin_encodeK. Qed.
+
+Lemma finfun_fin_decodeK :
+  cancel (fun i => Finfun (fin_decode i)) (fun x : fT => fin_encode (fgraph x)).
+Proof. by move => i; rewrite fin_decodeK. Qed.
+
+Definition finfun_finMixin :=
+  Eval hnf in BijOrdMixin finfun_fin_encodeK finfun_fin_decodeK.
 Canonical finfun_finType := Eval hnf in FinType ffT finfun_finMixin.
 Canonical finfun_subFinType := Eval hnf in [subFinType of ffT].
 Canonical finfun_of_finType := Eval hnf in [finType of fT for finfun_finType].

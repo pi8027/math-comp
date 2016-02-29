@@ -1193,17 +1193,28 @@ Prenex Implicits pred0P pred0Pn subsetP subsetPn subset_eqP card_uniqP.
 
 (* Redefine encoding and decoding function *)
 
+Notation "$| T |" := (Finite.mixin_card (Finite.class T))
+    (at level 0, T at level 99) : nat_scope.
+Notation raw_fin_encode := (Finite.mixin_encode (Finite.class _)).
+Notation raw_fin_decode := (Finite.mixin_decode (Finite.class _)).
+
+Lemma raw_fin_encodeK (T : finType) :
+  @cancel _ T raw_fin_encode raw_fin_decode.
+Proof. by case: T => sort [mixin []]. Qed.
+
+Lemma raw_fin_decodeK (T : finType) :
+  @cancel T _ raw_fin_decode raw_fin_encode.
+Proof. by case: T => sort [mixin []]. Qed.
+
 Module Type EncDecSig.
 Section EncDecSig.
 Variable (T : finType).
 Parameter fin_encode : T -> 'I_#|T|.
 Parameter fin_decode : 'I_#|T| -> T.
 Axiom fin_encodeE :
-  fin_encode =
-  fun x => cast_ord (esym (cardT' T)) (Finite.mixin_encode (Finite.class T) x).
-Axiom fin_decodeE :
-  fin_decode =
-  fun i => Finite.mixin_decode (Finite.class T) (cast_ord (cardT' T) i).
+  fin_encode = fun x => cast_ord (esym (cardT' T)) (raw_fin_encode x).
+Axiom fin_decodeE : fin_decode =
+  fun i => raw_fin_decode (cast_ord (cardT' T) i).
 Axiom fin_encodeK : cancel fin_encode fin_decode.
 Axiom fin_decodeK : cancel fin_decode fin_encode.
 Axiom enumT' : enum T = [seq fin_decode i | i <- ord_enum #|T|].
@@ -1216,31 +1227,25 @@ Section EncDecDef.
 Variable (T : finType).
 
 Definition fin_encode (x : T) : 'I_#|T| :=
-  cast_ord (esym (cardT' T)) (Finite.mixin_encode (Finite.class T) x).
+  cast_ord (esym (cardT' T)) (raw_fin_encode x).
 
 Definition fin_decode (i : 'I_#|T|) : T :=
-  Finite.mixin_decode (Finite.class T) (cast_ord (cardT' T) i).
+  raw_fin_decode (cast_ord (cardT' T) i).
 
 Definition fin_encodeE := erefl fin_encode.
 Definition fin_decodeE := erefl fin_decode.
 
 Lemma fin_encodeK : cancel fin_encode fin_decode.
 Proof.
-  have K : cancel (Finite.mixin_encode (Finite.class T))
-                  (Finite.mixin_decode (Finite.class T))
-    by case: T => sort [mixin []].
   move => x; rewrite /fin_decode.
-  rewrite -[RHS](K x).
+  rewrite -[RHS](raw_fin_encodeK x).
   by congr Finite.mixin_decode; apply/val_inj.
 Qed.
 
 Lemma fin_decodeK : cancel fin_decode fin_encode.
 Proof.
-  have K : cancel (Finite.mixin_decode (Finite.class T))
-                  (Finite.mixin_encode (Finite.class T))
-    by case: T => sort [mixin []].
   move => x; rewrite /fin_encode /fin_decode.
-  by apply/val_inj => /=; rewrite K.
+  by apply/val_inj => /=; rewrite raw_fin_decodeK.
 Qed.
 
 Lemma enumT' : enum T = [seq fin_decode i | i <- ord_enum #|T|].
@@ -1259,8 +1264,11 @@ Qed.
 End EncDecDef.
 End EncDecDef.
 
-Import EncDecDef.
-Export EncDecDef.
+Notation fin_encode := EncDecDef.fin_encode.
+Notation fin_decode := EncDecDef.fin_decode.
+Notation fin_encodeK := EncDecDef.fin_encodeK.
+Notation fin_decodeK := EncDecDef.fin_decodeK.
+Notation enumT' := EncDecDef.enumT'.
 
 (**********************************************************************)
 (*                                                                    *)
@@ -1771,28 +1779,29 @@ Section OptionFinType.
 
 Variable T : finType.
 
-Definition option_fin_encode (x : option T) : 'I_#|T|.+1 :=
+Definition option_fin_encode (x : option T) : 'I_$|T|.+1 :=
   match x with
   | None => ord0
-  | Some x' => rshift 1 (fin_encode x')
+  | Some x' => rshift 1 (raw_fin_encode x')
   end.
 
-Definition option_fin_decode (i : 'I_#|T|.+1) : option T :=
-  match @split 1 #|T| i with
+Definition option_fin_decode (i : 'I_$|T|.+1) : option T :=
+  match @split 1 $|T| i with
   | inl _ => None
-  | inr i' => Some (fin_decode i')
+  | inr i' => Some (raw_fin_decode i')
   end.
 
 Lemma option_fin_encodeK : cancel option_fin_encode option_fin_decode.
 Proof.
   by case => [x |]; rewrite /option_fin_decode;
-    case: splitP => //= [[[]] | k [] /val_inj <-] //; rewrite fin_encodeK.
+    case: splitP => //= [[[]] | k [] /val_inj <-] //;
+    rewrite raw_fin_encodeK.
 Qed.
 
 Lemma option_fin_decodeK : cancel option_fin_decode option_fin_encode.
 Proof.
   move => i; apply/val_inj; rewrite /option_fin_decode.
-  by case: splitP => [[[]] | k H] //=; rewrite fin_decodeK.
+  by case: splitP => [[[]] | k H] //=; rewrite raw_fin_decodeK.
 Qed.
 
 Definition option_finMixin :=
@@ -1800,7 +1809,7 @@ Definition option_finMixin :=
 Canonical option_finType := Eval hnf in FinType (option T) option_finMixin.
 
 Lemma card_option : #|{: option T}| = #|T|.+1.
-Proof. by rewrite [LHS]cardT'. Qed.
+Proof. by rewrite !cardT'. Qed.
 
 End OptionFinType.
 
@@ -2025,10 +2034,10 @@ Section OrdinalEnum.
 Variable n : nat.
 
 Lemma ord_encode (i : 'I_n) : fin_encode i = i :> nat.
-Proof. by rewrite fin_encodeE. Qed.
+Proof. by rewrite EncDecDef.fin_encodeE. Qed.
 
 Lemma ord_decode (i : 'I_#|'I_n|) : fin_decode i = i :> nat.
-Proof. by rewrite fin_decodeE. Qed.
+Proof. by rewrite EncDecDef.fin_decodeE. Qed.
 
 Lemma ord_enumE : ord_enum n = enum 'I_n.
 Proof. by rewrite enumT unlock /Finite.mixin_enum map_id. Qed.
@@ -2200,8 +2209,8 @@ Proof.
   by rewrite mulSn -addSn; apply leq_add => //; apply leq_mul.
 Qed.
 
-Definition prod_fin_encode (x : T1 * T2) : 'I_(#|T1| * #|T2|) :=
-  Ordinal (prod_fin_encode_subproof (fin_encode x.1) (fin_encode x.2)).
+Definition prod_fin_encode (x : T1 * T2) : 'I_($|T1| * $|T2|) :=
+  Ordinal (prod_fin_encode_subproof (raw_fin_encode x.1) (raw_fin_encode x.2)).
 
 Lemma prod_fin_decode_subproof1 m n (i : 'I_(m * n)) : i %/ n < m.
 Proof.
@@ -2213,24 +2222,24 @@ Qed.
 Lemma prod_fin_decode_subproof2 m n (i : 'I_(m * n)) : i %% n < n.
 Proof. by apply ltn_pmod; case: n i => //; rewrite muln0; case. Qed.
 
-Definition prod_fin_decode (i : 'I_(#|T1| * #|T2|)) : T1 * T2 :=
-  (fin_decode (Ordinal (prod_fin_decode_subproof1 i)),
-   fin_decode (Ordinal (prod_fin_decode_subproof2 i))).
+Definition prod_fin_decode (i : 'I_($|T1| * $|T2|)) : T1 * T2 :=
+  (raw_fin_decode (Ordinal (prod_fin_decode_subproof1 i)),
+   raw_fin_decode (Ordinal (prod_fin_decode_subproof2 i))).
 
 Lemma prod_fin_encodeK : cancel prod_fin_encode prod_fin_decode.
 Proof.
   case => x y; rewrite /prod_fin_encode /prod_fin_decode /=.
   set i := Ordinal _; set j := Ordinal _.
-  suff H: ((i = fin_encode x) * (j = fin_encode y))%type
-    by rewrite !H !fin_encodeK.
+  suff H: ((i = raw_fin_encode x) * (j = raw_fin_encode y))%type
+    by rewrite !H !raw_fin_encodeK.
   subst i; subst j; split; apply/val_inj;
     rewrite /= addnC (divnMDl, modnMDl) ?divn_small ?modn_small //.
-  by apply/card_gt0P; exists y.
+  by rewrite -cardT'; apply/card_gt0P; exists y.
 Qed.
 
 Lemma prod_fin_decodeK : cancel prod_fin_decode prod_fin_encode.
 Proof.
-  move => i; rewrite /prod_fin_encode /prod_fin_decode /= !fin_decodeK.
+  move => i; rewrite /prod_fin_encode /prod_fin_decode /= !raw_fin_decodeK.
   apply/val_inj => /=; by rewrite addnC -divn_eq.
 Qed.
 
@@ -2298,31 +2307,32 @@ Section SumFinType.
 
 Variables T1 T2 : finType.
 
-Definition sum_fin_encode (x : T1 + T2) : 'I_(#|T1| + #|T2|) :=
+Definition sum_fin_encode (x : T1 + T2) : 'I_($|T1| + $|T2|) :=
   match x with
-    | inl x' => lshift #|T2| (fin_encode x')
-    | inr x' => rshift #|T1| (fin_encode x')
+    | inl x' => lshift $|T2| (raw_fin_encode x')
+    | inr x' => rshift $|T1| (raw_fin_encode x')
   end.
 
-Definition sum_fin_decode (i : 'I_(#|T1| + #|T2|)) : T1 + T2 :=
+Definition sum_fin_decode (i : 'I_($|T1| + $|T2|)) : T1 + T2 :=
   match split i with
-    | inl i' => inl (fin_decode i')
-    | inr i' => inr (fin_decode i')
+    | inl i' => inl (raw_fin_decode i')
+    | inr i' => inr (raw_fin_decode i')
   end.
 
 Lemma sum_fin_encodeK : cancel sum_fin_encode sum_fin_decode.
 Proof.
   case => x; rewrite /sum_fin_encode /sum_fin_decode; case: splitP => //= i.
-  - by move/val_inj => <-; rewrite fin_encodeK.
-  - by move => H; move: (ltn_ord (fin_encode x)); rewrite H ltnNge leq_addr.
+  - by move/val_inj => <-; rewrite raw_fin_encodeK.
+  - by move => H; move: (ltn_ord (raw_fin_encode x)); rewrite H ltnNge leq_addr.
   - by move => H; move: (ltn_ord i); rewrite -H ltnNge leq_addr.
-  - by move/eqP; rewrite eqn_add2l; move/eqP/val_inj => <-; rewrite fin_encodeK.
+  - by move/eqP; rewrite eqn_add2l;
+      move/eqP/val_inj => <-; rewrite raw_fin_encodeK.
 Qed.
 
 Lemma sum_fin_decodeK : cancel sum_fin_decode sum_fin_encode.
 Proof.
   by move => i; rewrite /sum_fin_encode /sum_fin_decode;
-    case: splitP => j H; rewrite fin_decodeK; apply/val_inj.
+    case: splitP => j H; rewrite raw_fin_decodeK; apply/val_inj.
 Qed.
 
 Definition sum_finMixin :=
@@ -2330,7 +2340,7 @@ Definition sum_finMixin :=
 Canonical sum_finType := Eval hnf in FinType (T1 + T2) sum_finMixin.
 
 Lemma card_sum : #|{: T1 + T2}| = #|T1| + #|T2|.
-Proof. by rewrite (cardT' [finType of T1 + T2]). Qed.
+Proof. by rewrite !cardT'. Qed.
 
 Lemma enum_sum :
   enum [finType of T1 + T2] =
@@ -2345,10 +2355,11 @@ Proof.
       try by rewrite H // inE eqxx.
     move => H0 H1 /=.
     congr cons; last by apply IH => i H2; apply H; rewrite inE H2 orbT.
-    rewrite fin_decodeE /= /sum_fin_decode.
+    rewrite !EncDecDef.fin_decodeE /= /sum_fin_decode.
     case: splitP => /= k H2.
-    + by congr (inl (fin_decode _)); apply/val_inj.
-    + by move: H0 (H0) => H0' H0; move: H0'; rewrite {1}H2 ltnNge leq_addr.
+    + by congr (inl (raw_fin_decode _)); apply/val_inj.
+    + move: H0 (H0) => H0' H0; move: H0'.
+      by rewrite {1}H2 -{1}(cardT' T1) ltnNge leq_addr.
   - rewrite -[#|T1|]addn0 iota_addl.
     have H i : i \in iota 0 #|T2| -> i < #|T2| by rewrite mem_iota leq0n.
     elim: iota H => //= j js IH H.
@@ -2356,10 +2367,11 @@ Proof.
       try by rewrite H // inE eqxx.
     move => H0 H1 /=.
     congr cons; last by apply IH => i H2; apply H; rewrite inE H2 orbT.
-    rewrite fin_decodeE /= /sum_fin_decode.
+    rewrite !EncDecDef.fin_decodeE /= /sum_fin_decode.
     case: splitP => /= k H2.
-    + by move: (ltn_ord k); rewrite -H2 ltnNge leq_addr.
-    + by congr (inr (fin_decode _)); apply/val_inj/(can_inj (addKn #|T1|)).
+    + by move: (ltn_ord k); rewrite -H2 -{1}cardT' ltnNge leq_addr.
+    + by congr (inr (raw_fin_decode _));
+        apply/val_inj/(can_inj (addKn #|T1|)); rewrite {1}cardT'.
 Qed.
 
 End SumFinType.

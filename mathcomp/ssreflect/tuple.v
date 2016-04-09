@@ -376,18 +376,17 @@ Section FinTuple.
 Variables (n : nat) (T : finType).
 
 Lemma fin_encodeP (x : n.-tuple T) :
-  sumn [seq raw_fin_encode (tnth x i) * $|T| ^ i | i : 'I_n <- enum 'I_n] <
+  sumn [seq raw_fin_encode (tnth x i) * $|T| ^ i | i : 'I_n <- ord_enum n] <
   $|T| ^ n.
 Proof.
-  rewrite enumT Finite.EnumDef.enumDef /= -map_comp !/comp /ord_enum.
-  pose f i :=
-    if insub i is Some i' then raw_fin_encode (tnth x i') : nat else 0.
-  have ->:
-    sumn [seq raw_fin_encode (tnth x i) * $|T| ^ i |
-          i : 'I_n <- pmap insub (iota 0 n)] =
-    sumn [seq f i * $|T| ^ i | i <- iota 0 n]
-    by elim: iota => //= j js <-; rewrite /f; case: insubP => //= j' _ ->.
+pose f i := if insub i is Some i' then raw_fin_encode (tnth x i') : nat else 0.
+suff ->:
+  [seq raw_fin_encode (tnth x i) * $|T| ^ i | i : 'I_n <- ord_enum n] =
+  [seq f i * $|T| ^ i | i <- iota 0 n]
   by apply positional_notation_upper_bound => i H; rewrite /f insubT.
+rewrite -val_ord_enum -map_comp.
+apply eq_in_map => /= i _; rewrite /f insubT ?ltn_ord // => H.
+by congr (raw_fin_encode (tnth _ _) * _); apply/val_inj.
 Qed.
 
 Definition fin_encode (x : n.-tuple T) : 'I_($|T| ^ n) :=
@@ -396,8 +395,8 @@ Definition fin_encode (x : n.-tuple T) : 'I_($|T| ^ n) :=
 Lemma fin_decodeP (i : 'I_($|T| ^ n)) (j : 'I_n) :
   (i %/ ($|T| ^ j)) %% $|T| < $|T|.
 Proof.
-  by case: n i j => [i [] | n' i] => // j; apply ltn_pmod;
-     case: $|T| i => //=; rewrite exp0n => //= -[].
+by apply ltn_pmod; case: n j i => [[] | n'] => // j;
+   case: $|T| => //=; rewrite exp0n => //= -[].
 Qed.
 
 Definition fin_decode (i : 'I_($|T| ^ n)) : n.-tuple T :=
@@ -406,61 +405,54 @@ Definition fin_decode (i : 'I_($|T| ^ n)) : n.-tuple T :=
 
 Lemma fin_encodeK : cancel fin_encode fin_decode.
 Proof.
-  move => xs; rewrite /fin_encode /fin_decode.
-  apply/eq_from_tnth => i.
-  rewrite tnth_map tnth_ord_tuple -(raw_fin_encodeK (tnth xs i)).
-  congr raw_fin_decode; apply/val_inj => //=.
-  have HT : 0 < #|T| by apply/card_gt0P; exists (tnth xs i).
-  have ->: forall (f : nat -> nat) (g : 'I_n -> nat),
-      sumn [seq g j * f j | j : 'I_n <- enum 'I_n] =
-      sumn [seq [fun j => if insub j is Some j' then g j' else 0] j * f j |
-            j <- iota 0 n].
-    move => f g.
-    rewrite enumT unlock -map_comp !/comp /= /ord_enum.
-    by elim: iota => //= j js <-; case: insubP => //= j' _ ->.
-  set f := [fun j => _].
-  have Hf j : f j < $|T|
-    by simpl; case: (insub j) => //; rewrite -!cardT'.
-  have <- : f i = raw_fin_encode (tnth xs i)
-    by rewrite /= insubT // => H; move/val_inj: (SubK [subType of 'I_n] H) ->.
-  case: f Hf => /= f Hf.
-  rewrite -{1}(subnKC (ltn_ord i)) -{1}addn1 !iota_add !map_cat !sumn_cat /=
-          addn1 (addnC 0 i.+1) iota_addl -map_comp !/comp add0n addn0.
-  have ->:
-    sumn [seq f (i.+1 + j) * $|T| ^ (i.+1 + j) | j <- iota 0 (n - i.+1)] =
-    $|T| ^ (i.+1) * sumn [seq f (i.+1 + j) * $|T| ^ j | j <- iota 0 (n - i.+1)]
-    by elim: iota => //= j js ->; rewrite expnD mulnCA mulnDr.
-  rewrite expnS -mulnAC -addnA -mulnDl addnC divnMDl;
-    last by rewrite -cardT' expn_gt0 HT.
-  rewrite divn_small; last by apply positional_notation_upper_bound.
-  by rewrite addn0 addnC mulnC modnMDl modn_small.
+move => xs; rewrite /fin_encode /fin_decode.
+apply/eq_from_tnth => i.
+rewrite tnth_map tnth_ord_tuple -(raw_fin_encodeK (tnth xs i)).
+congr raw_fin_decode; apply/val_inj => //=.
+have HT : 0 < #|T| by apply/card_gt0P; exists (tnth xs i).
+have ->: forall (f : nat -> nat) (g : 'I_n -> nat),
+    [seq g j * f j | j : 'I_n <- ord_enum n] =
+    [seq [fun j => if insub j is Some j' then g j' else 0] j * f j |
+          j <- iota 0 n].
+  move => f g; rewrite -val_ord_enum -map_comp; apply/eq_in_map => /= j _.
+  by rewrite insubT ?ltn_ord // => H; congr (g _ * _); apply/val_inj.
+set f := [fun j => _].
+have Hf j : f j < $|T|
+  by simpl; case: (insub j) => //; rewrite -!cardT'.
+have <- : f i = raw_fin_encode (tnth xs i)
+  by rewrite /= insubT // => H; move/val_inj: (SubK [subType of 'I_n] H) ->.
+case: f Hf => /= f Hf.
+rewrite -{1}(subnKC (ltn_ord i)) -{1}addn1 !iota_add !map_cat !sumn_cat /=
+        addn1 (addnC 0 i.+1) iota_addl -map_comp !/comp add0n addn0.
+have ->:
+  sumn [seq f (i.+1 + j) * $|T| ^ (i.+1 + j) | j <- iota 0 (n - i.+1)] =
+  $|T| ^ (i.+1) * sumn [seq f (i.+1 + j) * $|T| ^ j | j <- iota 0 (n - i.+1)]
+  by elim: iota => //= j js ->; rewrite expnD mulnCA mulnDr.
+rewrite expnS -mulnAC -addnA -mulnDl addnC divnMDl;
+  last by rewrite -cardT' expn_gt0 HT.
+rewrite divn_small; last by apply positional_notation_upper_bound.
+by rewrite addn0 addnC mulnC modnMDl modn_small.
 Qed.
 
 Lemma fin_decodeK : cancel fin_decode fin_encode.
 Proof.
-  move => i; rewrite /fin_encode /fin_decode.
-  apply/val_inj => //=.
-  set xs := map _ _.
-  have {xs} -> : xs = [seq (i %/ $|T| ^ j %% $|T|) * $|T| ^ j | j <- iota 0 n].
-    subst xs.
-    rewrite {3}enumT Finite.EnumDef.enumDef /= -map_comp !/comp /ord_enum.
-    have: forall i, i \in iota 0 n -> i < n by move => j; rewrite mem_iota.
-    elim: iota => //= j js IH H.
-    rewrite insubT; first by apply H; rewrite inE eqxx.
-    move => H0 /=; rewrite {}IH;
-      last by move => j' H1; apply H; rewrite inE H1 orbT.
-    by congr cons; rewrite tnth_map raw_fin_decodeK /= tnth_ord_tuple.
-  case: i; elim: n => //= [[] |] // n' IH m H.
-  rewrite expn0 divn1 muln1 (iota_addl 1 0) -map_comp !/comp.
-  have ->:
-    sumn [seq (m %/ $|T| ^ i.+1) %% $|T| * $|T| ^ i.+1 | i <- iota 0 n'] =
-    sumn [seq (m %/ $|T| %/ $|T| ^ i) %% $|T| * $|T| ^ i | i <- iota 0 n'] *
-    $|T|.
-    by elim: iota => //= j js ->; rewrite {1}expnS divnMA expnSr mulnA mulnDl.
-  rewrite IH.
-  - by rewrite addnC -divn_eq.
-  - rewrite ltn_divLR -?expnSr //.
-    by case: $|T| H => //=; rewrite exp0n.
+move => i; rewrite /fin_encode /fin_decode.
+apply/val_inj => /=.
+set xs := map _ _.
+have {xs} -> : xs = [seq (i %/ $|T| ^ j %% $|T|) * $|T| ^ j | j <- iota 0 n]
+  by rewrite -val_ord_enum -map_comp; apply/eq_in_map => /= j _ {xs};
+     rewrite tnth_map tnth_ord_tuple raw_fin_decodeK.
+case: i; elim: n => //= [[] |] // n' IH m H.
+rewrite expn0 divn1 muln1 (iota_addl 1 0) -map_comp !/comp.
+have ->:
+  sumn [seq (m %/ $|T| ^ i.+1) %% $|T| * $|T| ^ i.+1 | i <- iota 0 n'] =
+  sumn [seq (m %/ $|T| %/ $|T| ^ i) %% $|T| * $|T| ^ i | i <- iota 0 n'] *
+  $|T|.
+  by elim: iota => //= j js ->; rewrite {1}expnS divnMA expnSr mulnA mulnDl.
+rewrite IH.
+- by rewrite addnC -divn_eq.
+- rewrite ltn_divLR -?expnSr //.
+  by case: $|T| H => //=; rewrite exp0n.
 Qed.
 
 End FinTuple.

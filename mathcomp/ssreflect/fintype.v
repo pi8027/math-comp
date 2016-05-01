@@ -459,7 +459,7 @@ Module Finite.
 
 Section RawMixin.
 
-Variable (T : eqType).
+Variable T : eqType.
 
 Record mixin_of := Mixin {
   mixin_base   : Countable.mixin_of T;
@@ -487,34 +487,35 @@ Section Mixins_eq.
 
 Variable (T : eqType).
 
-Lemma EnumMixin_f_subproof (e : seq T) (H : @axiom T e) (x : T) :
+Lemma EnumMixin_encode_subproof (e : seq T) (H : @axiom T e) (x : T) :
   index x e < (size e).
 Proof. by rewrite index_mem; apply/count_memPn; rewrite H. Qed.
 
-Definition EnumMixin_f (e : seq T) (H : @axiom T e) (x : T) : 'I_(size e) :=
-  Ordinal (@EnumMixin_f_subproof e H x).
+Definition EnumMixin_encode
+  (e : seq T) (H : @axiom T e) (x : T) : 'I_(size e) :=
+  Ordinal (@EnumMixin_encode_subproof e H x).
 
-Lemma EnumMixin_g_default (e : seq T) (i : 'I_(size e)) : T.
+Lemma EnumMixin_decode_default (e : seq T) (i : 'I_(size e)) : T.
 Proof. by case: e i => //= /ord_empty. Defined.
 
-Definition EnumMixin_g (e : seq T) (i : 'I_(size e)) : T :=
-  nth (@EnumMixin_g_default e i) e i.
+Definition EnumMixin_decode (e : seq T) (i : 'I_(size e)) : T :=
+  nth (@EnumMixin_decode_default e i) e i.
 
-Lemma EnumMixin_subproof1 (e : seq T) (H : @axiom T e) :
-  cancel (@EnumMixin_f e H) (@EnumMixin_g e).
+Lemma EnumMixin_encodeK (e : seq T) (H : @axiom T e) :
+  cancel (@EnumMixin_encode e H) (@EnumMixin_decode e).
 Proof.
-  by move => x; rewrite /EnumMixin_f /EnumMixin_g nth_index //;
+  by move => x; rewrite /EnumMixin_encode /EnumMixin_decode nth_index //;
     apply /count_memPn; rewrite H.
 Qed.
 
-Lemma EnumMixin_subproof2 (e : seq T) (H : @axiom T e) :
-  cancel (@EnumMixin_g e) (@EnumMixin_f e H).
+Lemma EnumMixin_decodeK (e : seq T) (H : @axiom T e) :
+  cancel (@EnumMixin_decode e) (@EnumMixin_encode e H).
 Proof.
   move => i; apply val_inj.
-  rewrite /EnumMixin_f /EnumMixin_g /= index_uniq //.
+  rewrite /EnumMixin_encode /EnumMixin_decode /= index_uniq //.
   apply count_mem_uniq => x; rewrite H.
   by case_eq (x \in e) => // /count_memPn; rewrite H.
-Qed.  
+Qed.
 
 End Mixins_eq.
 
@@ -529,7 +530,7 @@ Definition BijOrdMixin :=
   @Mixin (EqType _ _) m.
 
 Definition EnumMixin (e : seq T) (H : @axiom T e) : mixin_of T :=
-  BijOrdMixin (@EnumMixin_subproof1 T e H) (@EnumMixin_subproof2 T e H).
+  BijOrdMixin (@EnumMixin_encodeK T e H) (@EnumMixin_decodeK T e H).
 
 Definition UniqMixin e Ue eT := @EnumMixin e (uniq_enumP Ue eT).
 
@@ -1994,8 +1995,8 @@ Proof. exact: Finite.uniq_enumP (undup_uniq _) mem_seq_sub_enum. Qed.
 
 Definition seq_sub_finMixin :=
   Finite.Mixin seq_sub_countMixin
-               (Finite.EnumMixin_subproof1 seq_sub_axiom)
-               (Finite.EnumMixin_subproof2 seq_sub_axiom).
+               (Finite.EnumMixin_encodeK seq_sub_axiom)
+               (Finite.EnumMixin_decodeK seq_sub_axiom).
 
 (* Beware: these are not the canonical instances, as they are not consistent  *)
 (* with the generic sub_choiceType canonical instance.                        *)

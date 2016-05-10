@@ -395,8 +395,8 @@ Definition fin_encode (x : n.-tuple T) : 'I_($|T| ^ n) :=
 Lemma fin_decodeP (i : 'I_($|T| ^ n)) (j : 'I_n) :
   (i %/ ($|T| ^ j)) %% $|T| < $|T|.
 Proof.
-by apply ltn_pmod; case: n j i => [[] | n'] => // j;
-   case: $|T| => //=; rewrite exp0n => //= -[].
+by apply ltn_pmod; case: n j $|T| i =>
+   [[] | n'] // j [] //; rewrite exp0n => // -[].
 Qed.
 
 Definition fin_decode (i : 'I_($|T| ^ n)) : n.-tuple T :=

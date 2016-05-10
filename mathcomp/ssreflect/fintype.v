@@ -482,31 +482,30 @@ Arguments mixin_decode [T] m x.
 
 Section Mixins_eq.
 
-Variable (T : eqType).
+Variable (T : eqType) (e : seq T).
 
-Lemma EnumMixin_encode_subproof (e : seq T) (H : @axiom T e) (x : T) :
+Lemma EnumMixin_encode_subproof (H : @axiom T e) (x : T) :
   index x e < (size e).
 Proof. by rewrite index_mem; apply/count_memPn; rewrite H. Qed.
 
-Definition EnumMixin_encode
-  (e : seq T) (H : @axiom T e) (x : T) : 'I_(size e) :=
-  Ordinal (@EnumMixin_encode_subproof e H x).
+Definition EnumMixin_encode (H : @axiom T e) (x : T) : 'I_(size e) :=
+  Ordinal (@EnumMixin_encode_subproof H x).
 
-Lemma EnumMixin_decode_default (e : seq T) (i : 'I_(size e)) : T.
+Lemma EnumMixin_decode_default (i : 'I_(size e)) : T.
 Proof. by case: e i => //= /ord_empty. Defined.
 
-Definition EnumMixin_decode (e : seq T) (i : 'I_(size e)) : T :=
-  nth (@EnumMixin_decode_default e i) e i.
+Definition EnumMixin_decode (i : 'I_(size e)) : T :=
+  nth (EnumMixin_decode_default i) e i.
 
-Lemma EnumMixin_encodeK (e : seq T) (H : @axiom T e) :
-  cancel (@EnumMixin_encode e H) (@EnumMixin_decode e).
+Lemma EnumMixin_encodeK (H : @axiom T e) :
+  cancel (EnumMixin_encode H) EnumMixin_decode.
 Proof.
   by move => x; rewrite /EnumMixin_encode /EnumMixin_decode nth_index //;
     apply /count_memPn; rewrite H.
 Qed.
 
-Lemma EnumMixin_decodeK (e : seq T) (H : @axiom T e) :
-  cancel (@EnumMixin_decode e) (@EnumMixin_encode e H).
+Lemma EnumMixin_decodeK (H : @axiom T e) :
+  cancel EnumMixin_decode (EnumMixin_encode H).
 Proof.
   move => i; apply val_inj.
   rewrite /EnumMixin_encode /EnumMixin_decode /= index_uniq //.

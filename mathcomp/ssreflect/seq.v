@@ -2158,9 +2158,6 @@ Proof. by elim: s => //= x s <-; case: (f _). Qed.
 Lemma pmapS_filter s : map some (pmap s) = map f (filter [eta f] s).
 Proof. by elim: s => //= x s; case fx: (f x) => //= [u] <-; congr (_ :: _). Qed.
 
-Lemma pmap_cat s1 s2 : pmap (s1 ++ s2) = pmap s1 ++ pmap s2.
-Proof. by elim: s1 => //= x s1 ->; case: (f x). Qed.
-
 Hypothesis fK : ocancel f g.
 
 Lemma pmap_filter s : map g (pmap s) = filter [eta f] s.

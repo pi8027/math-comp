@@ -595,7 +595,7 @@ Notation "[ 'finType' 'of' T ]" := (@clone T _ _ id)
   (at level 0, format "[ 'finType'  'of'  T ]") : form_scope.
 End Exports.
 
-Definition raw_card T := mixin_card (Finite.class T).
+Definition raw_card T := mixin_card (class T).
 
 Module Type EnumSig.
 Parameter enum : forall cT : type, seq cT.
@@ -2029,10 +2029,10 @@ Section OrdinalFinType.
 
 Variable n : nat.
 
-Lemma ordinal_fin_encdecK : @cancel 'I_n _ id id. Proof. by []. Qed.
+Lemma cancel_id T : @cancel T T id id. Proof. by []. Qed.
 
 Definition ordinal_finMixin :=
-  Eval hnf in BijOrdMixin ordinal_fin_encdecK ordinal_fin_encdecK.
+  Eval hnf in BijOrdMixin (@cancel_id 'I_n) (@cancel_id 'I_n).
 Canonical ordinal_finType := Eval hnf in FinType 'I_n ordinal_finMixin.
 Canonical ordinal_subFinType := Eval hnf in [subFinType of 'I_n].
 

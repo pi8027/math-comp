@@ -58,7 +58,9 @@ Notation "T ^ n" := (@finfun_of (exp_finIndexType n) T (Phant _)) : type_scope.
 Local Notation fun_of_fin_def :=
   (fun aT rT f x => tnth (@fgraph aT rT f) (fin_encode x)).
 
-Local Notation finfun_def := (fun aT rT f => @Finfun aT rT (codom_tuple f)).
+Local Notation finfun_def :=
+  (fun (aT : finType) (rT : Type) (f : aT -> rT) =>
+     @Finfun aT rT (tcast (esym (cardT' aT)) (mktuple (f \o raw_fin_decode)))).
 
 Module Type FunFinfunSig.
 Parameter fun_of_fin : forall aT rT, finfun_type aT rT -> aT -> rT.
@@ -109,8 +111,9 @@ Proof. by rewrite [@fun_of_fin]unlock fin_decodeK. Qed.
 
 Lemma ffunE (g : aT -> rT) : finfun g =1 g.
 Proof.
-move=> x; rewrite [@finfun]unlock unlock tnth_map.
-by rewrite -[tnth _ _]fin_decode_nth fin_encodeK.
+move=> x.
+by rewrite [@finfun]unlock unlock EncDecDef.fin_encodeE /= tcastE cast_ord_comp
+           cast_ord_id tnth_map /funcomp tnth_ord_tuple raw_fin_encodeK.
 Qed.
 
 Lemma fgraph_codom f : fgraph f = codom_tuple f.
@@ -244,13 +247,23 @@ Notation fT := {ffun aT -> rT}.
 Notation ffT := (finfun_type aT rT).
 Implicit Types (D : pred aT) (R : pred rT) (F : aT -> pred rT).
 
-Lemma finfun_fin_encodeK :
-  cancel (fun x : fT => fin_encode (fgraph x)) (fun i => Finfun (fin_decode i)).
-Proof. by case => x; rewrite fin_encodeK. Qed.
+Definition finfun_fin_encode (x : fT) : 'I_($|rT| ^ $|aT|) :=
+  FinTuple.fin_encode (tcast (cardT' aT) (fgraph x)).
 
-Lemma finfun_fin_decodeK :
-  cancel (fun i => Finfun (fin_decode i)) (fun x : fT => fin_encode (fgraph x)).
-Proof. by move => i; rewrite fin_decodeK. Qed.
+Definition finfun_fin_decode (i : 'I_($|rT| ^ $|aT|)) : fT :=
+  Finfun (tcast (esym (cardT' aT)) (FinTuple.fin_decode i)).
+
+Lemma finfun_fin_encodeK : cancel finfun_fin_encode finfun_fin_decode.
+Proof.
+by case => x;
+  rewrite /finfun_fin_encode /finfun_fin_decode FinTuple.fin_encodeK tcastK.
+Qed.
+
+Lemma finfun_fin_decodeK : cancel finfun_fin_decode finfun_fin_encode.
+Proof.
+by move => i; rewrite
+  /finfun_fin_encode /finfun_fin_decode /= tcastKV FinTuple.fin_decodeK.
+Qed.
 
 Definition finfun_finMixin :=
   Eval hnf in BijOrdMixin finfun_fin_encodeK finfun_fin_decodeK.

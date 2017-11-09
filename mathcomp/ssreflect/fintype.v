@@ -665,15 +665,17 @@ Notation "$| T |" := (Finite.raw_card T)
 
 Local Notation card_type := (forall T : finType, mem_pred T -> nat).
 
-Fixpoint card_def_rec (T : finType) (mA : mem_pred T) n : n <= $|T| -> nat :=
+Fixpoint card_def_rec (T : Type) (c : nat) (f : 'I_c -> T) (mA : pred T) n :
+  n <= c -> nat :=
   match n with
   | 0 => fun _ => 0
-  | n'.+1 => fun (H : n' < $|T|) =>
-               mA (Finite.mixin_decode (Finite.class T) (Ordinal H)) +
-               card_def_rec mA (n := n') (ltnW H)
+  | n'.+1 => fun (H : n' < c) =>
+               mA (f (Ordinal H)) + card_def_rec f mA (n := n') (ltnW H)
   end.
 
-Local Notation card_def := (fun T mA => @card_def_rec T mA $|T| (leqnn $|T|)).
+Local Notation card_def :=
+  (fun T mA => @card_def_rec T $|T|
+   (Finite.mixin_decode (Finite.class T)) mA $|T| (leqnn $|T|)).
 
 Module Type CardDefSig.
 Parameter card : card_type. Axiom cardEdef : card = card_def.
@@ -880,10 +882,10 @@ Proof. by move=> eqPQ; rewrite /pick (eq_enum eqPQ). Qed.
 
 Lemma cardE A : #|A| = size (enum A).
 Proof.
-rewrite size_filter !unlock count_map /ord_enum -(addn0 (card_def_rec _ _)).
+rewrite size_filter !unlock count_map /ord_enum -(addn0 (card_def_rec _ _ _)).
 set A' := [preim _ of A].
 have <-: count A' [::] = 0 by [].
-by elim: {1 3 5}$|T| (leqnn _) [::] => // n IH Hn l; rewrite -IH addnCA addnA.
+by elim: {1 4 6}$|T| (leqnn _) [::] => // n IH Hn l; rewrite -IH addnCA addnA.
 Qed.
 
 Lemma eq_card A B : A =i B -> #|A| = #|B|.
@@ -2218,8 +2220,8 @@ case: m i j => [| m] [i] //=; rewrite ltnS => Hi [j Hj] /=.
 by rewrite mulSn -addSn; apply leq_add => //; apply leq_mul.
 Qed.
 
-Definition prod_fin_encode (x : T1 * T2) : 'I_($|T1| * $|T2|) :=
-  Ordinal (prod_fin_encode_subproof (raw_fin_encode x.1) (raw_fin_encode x.2)).
+Definition prod_fin_encode '(x, y) : 'I_($|T1| * $|T2|) :=
+  Ordinal (prod_fin_encode_subproof (raw_fin_encode x) (raw_fin_encode y)).
 
 Lemma prod_fin_decode_subproof1 m n (i : 'I_(m * n)) : i %/ n < m.
 Proof.

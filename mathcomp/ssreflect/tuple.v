@@ -322,6 +322,29 @@ apply: val_inj; rewrite (tnth_nth i) -(nth_map _ 0) ?size_tuple //.
 by rewrite /= enumT unlock -map_comp !/comp /= val_ord_enum nth_iota.
 Qed.
 
+Section ImageTuple.
+
+Variables (T' : Type) (f : T -> T') (A : pred T).
+
+Canonical image_tuple : #|A|.-tuple T' := [tuple of image f A].
+Canonical codom_tuple : #|T|.-tuple T' := [tuple of codom f].
+
+End ImageTuple.
+
+Section MkTuple.
+
+Variables (T' : Type) (f : 'I_n -> T').
+
+Definition mktuple := map_tuple f ord_tuple.
+
+Lemma tnth_mktuple i : tnth mktuple i = f i.
+Proof. by rewrite tnth_map tnth_ord_tuple. Qed.
+
+Lemma nth_mktuple x0 (i : 'I_n) : nth x0 mktuple i = f i.
+Proof. by rewrite -tnth_nth tnth_mktuple. Qed.
+
+End MkTuple.
+
 End UseFinTuple.
 
 Definition tuple_choiceMixin n (T : choiceType) :=
@@ -354,22 +377,22 @@ Module FinTuple : FinTupleSig.
 Lemma sumn_expn n m :
   0 < n -> n ^ m = (sumn [seq n.-1 * n ^ i | i <- iota 0 m]).+1.
 Proof.
-  case: n => //= n _; elim: m => // m IH.
-  by rewrite -{2}(addn1 m) iota_add add0n map_cat sumn_cat /=
-             addn0 expnS -addSn mulSn {1}IH.
+case: n => //= n _; elim: m => // m IH.
+by rewrite -{2}(addn1 m) iota_add add0n map_cat sumn_cat /=
+           addn0 expnS -addSn mulSn {1}IH.
 Qed.
 
 Lemma positional_notation_upper_bound n m (f : nat -> nat) :
   (forall i, i < m -> f i < n) -> sumn [seq f i * n ^ i | i <- iota 0 m] < n ^ m.
 Proof.
-  case: n => //=; first by case: m => // m /(_ 0) /(_ erefl); rewrite ltn0.
-  move => n H; rewrite sumn_expn //=; rewrite ltnS.
-  have {H} : forall i, i \in iota 0 m -> f i <= n
-    by move => i; rewrite mem_iota add0n => /andP [_] /H; rewrite ltnS.
-  elim: iota => //= j js IH H.
-  apply leq_add => //.
-  - by rewrite leq_pmul2r ?expn_gt0 //; apply H; rewrite inE eqxx.
-  - by apply IH => i H0; apply H; rewrite inE H0 orbT.
+case: n => //=; first by case: m => // m /(_ 0) /(_ erefl); rewrite ltn0.
+move => n H; rewrite sumn_expn //=; rewrite ltnS.
+have {H} : forall i, i \in iota 0 m -> f i <= n
+  by move => i; rewrite mem_iota add0n => /andP [_] /H; rewrite ltnS.
+elim: iota => //= j js IH H.
+apply leq_add => //.
+- by rewrite leq_pmul2r ?expn_gt0 //; apply H; rewrite inE eqxx.
+- by apply IH => i H0; apply H; rewrite inE H0 orbT.
 Qed.
 
 Section FinTuple.
@@ -400,8 +423,7 @@ by apply ltn_pmod; case: n j $|T| i =>
 Qed.
 
 Definition fin_decode (i : 'I_($|T| ^ n)) : n.-tuple T :=
-  [tuple of [seq raw_fin_decode (Ordinal (fin_decodeP i j)) |
-             j <- ord_tuple n]].
+  mktuple (fun j : 'I_n => raw_fin_decode (Ordinal (fin_decodeP i j))).
 
 Lemma fin_encodeK : cancel fin_encode fin_decode.
 Proof.
@@ -458,9 +480,9 @@ Qed.
 End FinTuple.
 End FinTuple.
 
-Section UseFinTuple'.
+Section FinTuple'.
 
-Variables (n : nat) (T : finType).
+Variable (n : nat) (T : finType).
 
 Canonical tuple_finMixin :=
   Eval hnf in BijOrdMixin (@FinTuple.fin_encodeK n T)
@@ -471,30 +493,7 @@ Canonical tuple_subFinType := Eval hnf in [subFinType of n.-tuple T].
 Lemma card_tuple : #|{:n.-tuple T}| = #|T| ^ n.
 Proof. by rewrite !cardT'. Qed.
 
-Section ImageTuple.
-
-Variables (T' : Type) (f : T -> T') (A : pred T).
-
-Canonical image_tuple : #|A|.-tuple T' := [tuple of image f A].
-Canonical codom_tuple : #|T|.-tuple T' := [tuple of codom f].
-
-End ImageTuple.
-
-Section MkTuple.
-
-Variables (T' : Type) (f : 'I_n -> T').
-
-Definition mktuple := map_tuple f (ord_tuple n).
-
-Lemma tnth_mktuple i : tnth mktuple i = f i.
-Proof. by rewrite tnth_map tnth_ord_tuple. Qed.
-
-Lemma nth_mktuple x0 (i : 'I_n) : nth x0 mktuple i = f i.
-Proof. by rewrite -tnth_nth tnth_mktuple. Qed.
-
-End MkTuple.
-
-End UseFinTuple'.
+End FinTuple'.
 
 Notation "[ 'tuple' F | i < n ]" := (mktuple (fun i : 'I_n => F))
   (at level 0, i at level 0,

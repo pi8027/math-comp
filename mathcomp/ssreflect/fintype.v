@@ -444,10 +444,10 @@ Lemma lift0 (i : 'I_n') : lift ord0 i = i.+1 :> nat. Proof. by []. Qed.
 
 End OrdinalPos.
 
-Implicit Arguments ord0 [[n']].
-Implicit Arguments ord_max [[n']].
-Implicit Arguments inord [[n']].
-Implicit Arguments sub_ord [[n']].
+Arguments ord0 {n'}.
+Arguments ord_max {n'}.
+Arguments inord {n'}.
+Arguments sub_ord {n'}.
 
 (**********************************************************************)
 (*                                                                    *)
@@ -899,7 +899,7 @@ Lemma card0 : #|@pred0 T| = 0. Proof. by rewrite cardE enum0. Qed.
 Lemma cardT : #|T| = size (enum T). Proof. by rewrite cardE. Qed.
 
 Lemma cardT' : #|T| = $|T|.
-Proof. by rewrite cardE enumT unlock size_map /= size_ord_enum. Qed.
+Proof. by rewrite cardE enumT unlock size_map size_ord_enum. Qed.
 
 Lemma card1 x : #|pred1 x| = 1.
 Proof. by rewrite cardE enum1. Qed.

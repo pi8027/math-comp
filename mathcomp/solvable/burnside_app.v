@@ -695,7 +695,7 @@ Definition prod_tuple (t1 t2 : seq cube) :=
   map (fun n : 'I_6 => nth F0 t2 n) t1.
 
 Lemma sop_spec : forall x (n0 : 'I_6), nth F0 (sop x) n0 = x n0.
-Proof. by move=> x n0; rewrite -pvalE unlock enum_rank_ord (tnth_nth F0). Qed.
+Proof. by move=> x n0; rewrite nth_fgraph_ord pvalE. Qed.
 
 Lemma prod_t_correct : forall (x y : {perm cube}) (i : cube),
   (x * y) i = nth F0 (prod_tuple (sop x) (sop y)) i.

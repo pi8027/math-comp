@@ -60,7 +60,7 @@ Local Notation fun_of_fin_def :=
 
 Local Notation finfun_def :=
   (fun (aT : finType) (rT : Type) (f : aT -> rT) =>
-     @Finfun aT rT (tcast (esym (cardT' aT)) (mktuple (f \o raw_fin_decode)))).
+     @Finfun aT rT (tcast (raw_cardE aT) (mktuple (f \o Finite.decode)))).
 
 Module Type FunFinfunSig.
 Parameter fun_of_fin : forall aT rT, finfun_type aT rT -> aT -> rT.
@@ -157,7 +157,8 @@ Arguments ffun_onP [aT rT R f].
 
 Lemma nth_fgraph_ord T n (x0 : T) (i : 'I_n) f : nth x0 (fgraph f) i = f i.
 Proof.
-by rewrite -{2}(fin_encodeK i) -tnth_fgraph (tnth_nth x0) ord_encode.
+rewrite -{2}(fin_encodeK i) -tnth_fgraph (tnth_nth x0).
+by rewrite [@fin_encode]unlock.
 Qed.
 
 Section Support.
@@ -248,25 +249,25 @@ Notation ffT := (finfun_type aT rT).
 Implicit Types (D : pred aT) (R : pred rT) (F : aT -> pred rT).
 
 Definition finfun_fin_encode (x : fT) : 'I_($|rT| ^ $|aT|) :=
-  FinTuple.fin_encode (tcast (cardT' aT) (fgraph x)).
+  FinTuple.fin_encode (tcast (esym (raw_cardE aT)) (fgraph x)).
 
 Definition finfun_fin_decode (i : 'I_($|rT| ^ $|aT|)) : fT :=
-  Finfun (tcast (esym (cardT' aT)) (FinTuple.fin_decode i)).
+  Finfun (tcast (raw_cardE aT) (FinTuple.fin_decode i)).
 
 Lemma finfun_fin_encodeK : cancel finfun_fin_encode finfun_fin_decode.
 Proof.
-by case => x;
-  rewrite /finfun_fin_encode /finfun_fin_decode FinTuple.fin_encodeK tcastK.
+case=> x.
+by rewrite /finfun_fin_encode /finfun_fin_decode FinTuple.fin_encodeK tcastKV.
 Qed.
 
 Lemma finfun_fin_decodeK : cancel finfun_fin_decode finfun_fin_encode.
 Proof.
-by move => i; rewrite
-  /finfun_fin_encode /finfun_fin_decode /= tcastKV FinTuple.fin_decodeK.
+move=> i.
+by rewrite /finfun_fin_encode /finfun_fin_decode /= tcastK FinTuple.fin_decodeK.
 Qed.
 
 Definition finfun_finMixin :=
-  Eval hnf in BijOrdMixin finfun_fin_encodeK finfun_fin_decodeK.
+  Eval hnf in BijFinMixin finfun_fin_encodeK finfun_fin_decodeK.
 Canonical finfun_finType := Eval hnf in FinType ffT finfun_finMixin.
 Canonical finfun_subFinType := Eval hnf in [subFinType of ffT].
 Canonical finfun_of_finType := Eval hnf in [finType of fT for finfun_finType].

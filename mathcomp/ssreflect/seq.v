@@ -2693,7 +2693,7 @@ Qed.
 
 Section AllPairs.
 
-Variables (S T R : Type) (f : S -> T -> R).
+Variables (S S' T T' R : Type) (f : S -> T -> R).
 Implicit Types (s : seq S) (t : seq T).
 
 Definition allpairs s t := foldr (fun x => cat (map (f x) t)) [::] s.
@@ -2717,6 +2717,20 @@ Notation "[ 'seq' E | i : T <- s , j : U <- t ]" :=
   (allpairs (fun (i : T) (j : U) => E) s t)
   (at level 0, E at level 99, i ident, j ident, only parsing) : seq_scope.
 
+Lemma allpairs_mapl S S' T R (f : S -> T -> R) (g : S' -> S) s t :
+  [seq f x y | x <- map g s, y <- t] = [seq f (g x) y | x <- s, y <- t].
+Proof. by elim: s => //= x s ->. Qed.
+
+Lemma allpairs_mapr S T T' R (f : S -> T -> R) (g : T' -> T) s t :
+  [seq f x y | x <- s, y <- map g t] =
+    [seq f x (g y) | x <- s, y <- t].
+Proof. by elim: s => //= x s ->; rewrite -map_comp. Qed.
+
+Lemma map_allpairs S T R R' (g : R' -> R) f s t :
+  map g [seq f x y | x : S <- s, y : T <- t] =
+    [seq g (f x y) | x <- s, y <- t].
+Proof. by elim: s => //= x s <-; rewrite map_cat -map_comp. Qed.
+
 Section EqAllPairs.
 
 Variables S T : eqType.
@@ -2732,6 +2746,15 @@ rewrite mem_cat; have [fxt_z | not_fxt_z] := altP mapP.
 apply: (iffP IHs) => [] [[x' y] /= [s_x' t_y def_z]]; exists (x', y).
   by rewrite !inE predU1r.
 by have [def_x' | //] := predU1P s_x'; rewrite def_z def_x' map_f in not_fxt_z.
+Qed.
+
+Lemma eq_in_allpairs R (f1 f2 : S -> T -> R) s t :
+  {in s & t, f1 =2 f2} ->
+  [seq f1 x y | x <- s, y <- t] = [seq f2 x y | x <- s, y <- t].
+Proof.
+elim: s => //= x s ih h; congr cat.
+- by apply/eq_in_map => y; apply: (h x y); rewrite inE eqxx.
+- by apply: ih=> y z hy; apply: h; rewrite inE hy orbT.
 Qed.
 
 Lemma mem_allpairs R (f : S -> T -> R) s1 t1 s2 t2 :

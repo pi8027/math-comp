@@ -131,7 +131,7 @@ Definition set_countMixin := [countMixin of set_type by <:].
 Canonical set_countType := Eval hnf in CountType set_type set_countMixin.
 Canonical set_subCountType := Eval hnf in [subCountType of set_type].
 Definition set_finMixin :=
-  Eval hnf in BijOrdMixin set_fin_encodeK set_fin_decodeK.
+  Eval hnf in BijFinMixin set_fin_encodeK set_fin_decodeK.
 Canonical set_finType := Eval hnf in FinType set_type set_finMixin.
 Canonical set_subFinType := Eval hnf in [subFinType of set_type].
 

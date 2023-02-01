@@ -1115,8 +1115,14 @@ Reserved Notation "\join^p_ ( i 'in' A ) F"
 
 Module Order.
 
+Set Primitive Projections.
+Record disp_t := Disp {d1 : unit; d2 : unit}.
+Unset Primitive Projections.
+
+Definition disp_tt := {| d1 := tt; d2 := tt |}.
+
 Definition dual T : Type := T.
-Fact dual_display : unit -> unit. Proof. exact. Qed.
+Definition dual_display (d : disp_t) := Disp (d2 d) (d1 d).
 
 Module Import DualSyntax.
 Notation "T ^d" := (dual T) (at level 2, format "T ^d") : type_scope.
@@ -1146,11 +1152,11 @@ Unset Primitive Projections.
 
 Local Coercion base : class_of >-> Choice.class_of.
 
-Structure type (disp : unit) := Pack { sort; _ : class_of sort }.
+Structure type (disp : disp_t) := Pack { sort; _ : class_of sort }.
 
 Local Coercion sort : type >-> Sortclass.
 
-Variables (T : Type) (disp : unit) (cT : type disp).
+Variables (T : Type) (disp : disp_t) (cT : type disp).
 
 Definition class := let: Pack _ c as cT' := cT return class_of cT' in c.
 Definition clone c of phant_id class c := @Pack disp T c.
@@ -1194,7 +1200,7 @@ Import POrder.Exports.
 
 Section POrderDef.
 
-Variables (disp : unit) (T : porderType disp).
+Variables (disp : disp_t) (T : porderType disp).
 
 Let ord := POrder _ _ (POrder.class T).
 
@@ -1421,11 +1427,11 @@ Local Coercion base : class_of >-> POrder.class_of.
 Definition rel_class T (c : class_of T) :=
   RelOrder.BPOrder.Class (rel_mixin (mixin c)).
 
-Structure type (disp : unit) := Pack { sort; _ : class_of sort }.
+Structure type (disp : disp_t) := Pack { sort; _ : class_of sort }.
 
 Local Coercion sort : type >-> Sortclass.
 
-Variables (T : Type) (disp : unit) (cT : type disp).
+Variables (T : Type) (disp : disp_t) (cT : type disp).
 
 Definition class := let: Pack _ c as cT' := cT return class_of cT' in c.
 Definition clone c of phant_id class c := @Pack disp T c.
@@ -1492,11 +1498,11 @@ Local Coercion base : class_of >-> POrder.class_of.
 Definition rel_class T (c : class_of T) :=
   RelOrder.TPOrder.Class (rel_mixin (mixin c)).
 
-Structure type (disp : unit) := Pack { sort; _ : class_of sort }.
+Structure type (disp : disp_t) := Pack { sort; _ : class_of sort }.
 
 Local Coercion sort : type >-> Sortclass.
 
-Variable (T : Type) (disp : unit) (cT : type disp).
+Variable (T : Type) (disp : disp_t) (cT : type disp).
 
 Definition class := let: Pack _ c as cT' := cT return class_of cT' in c.
 Definition clone c of phant_id class c := @Pack disp T c.
@@ -1561,11 +1567,11 @@ Local Coercion base2 T (c : class_of T) : TPOrder.class_of T :=
 Definition rel_class T (c : class_of T) :=
   @RelOrder.TBPOrder.Class _ _ _ _ _ c (mixin c).
 
-Structure type (disp : unit) := Pack { sort; _ : class_of sort }.
+Structure type (disp : disp_t) := Pack { sort; _ : class_of sort }.
 
 Local Coercion sort : type >-> Sortclass.
 
-Variables (T : Type) (disp : unit) (cT : type disp).
+Variables (T : Type) (disp : disp_t) (cT : type disp).
 
 Definition class := let: Pack _ c as cT' := cT return class_of cT' in c.
 
@@ -1606,10 +1612,10 @@ End Exports.
 End TBPOrder.
 Import TBPOrder.Exports.
 
-Definition bottom (disp : unit) (T : bPOrderType disp) : T :=
+Definition bottom (disp : disp_t) (T : bPOrderType disp) : T :=
   RelOrder.bottom (BPOrder le lt _ (BPOrder.class T)).
 
-Definition top (disp : unit) (T : tPOrderType disp) : T :=
+Definition top (disp : disp_t) (T : tPOrderType disp) : T :=
   RelOrder.top (TPOrder le lt _ (TPOrder.class T)).
 
 Arguments bottom {disp T}.
@@ -1647,11 +1653,11 @@ Local Coercion base : class_of >-> POrder.class_of.
 Definition rel_class T (c : class_of T) :=
   RelOrder.Meet.Class (rel_mixin (mixin c)).
 
-Structure type (disp : unit) := Pack { sort; _ : class_of sort }.
+Structure type (disp : disp_t) := Pack { sort; _ : class_of sort }.
 
 Local Coercion sort : type >-> Sortclass.
 
-Variables (T : Type) (disp : unit) (cT : type disp).
+Variables (T : Type) (disp : disp_t) (cT : type disp).
 
 Definition class := let: Pack _ c as cT' := cT return class_of cT' in c.
 Definition clone c of phant_id class c := @Pack disp T c.
@@ -1718,11 +1724,11 @@ Local Coercion base2 T (c : class_of T) : BPOrder.class_of T :=
 Definition rel_class T (c : class_of T) :=
   @RelOrder.BMeet.Class _ _ _ _ _ c (mixin c).
 
-Structure type (disp : unit) := Pack { sort; _ : class_of sort }.
+Structure type (disp : disp_t) := Pack { sort; _ : class_of sort }.
 
 Local Coercion sort : type >-> Sortclass.
 
-Variables (T : Type) (disp : unit) (cT : type disp).
+Variables (T : Type) (disp : disp_t) (cT : type disp).
 
 Definition class := let: Pack _ c as cT' := cT return class_of cT' in c.
 
@@ -1783,11 +1789,11 @@ Local Coercion base2 T (c : class_of T) : TPOrder.class_of T :=
 Definition rel_class T (c : class_of T) :=
   @RelOrder.TMeet.Class _ _ _ _ _ c (mixin c).
 
-Structure type (disp : unit) := Pack { sort; _ : class_of sort }.
+Structure type (disp : disp_t) := Pack { sort; _ : class_of sort }.
 
 Local Coercion sort : type >-> Sortclass.
 
-Variables (T : Type) (disp : unit) (cT : type disp).
+Variables (T : Type) (disp : disp_t) (cT : type disp).
 
 Definition class := let: Pack _ c as cT' := cT return class_of cT' in c.
 
@@ -1850,11 +1856,11 @@ Local Coercion base3 T (c : class_of T) : TBPOrder.class_of T :=
 Definition rel_class T (c : class_of T) :=
   @RelOrder.TBMeet.Class _ _ _ _ _ _ c (mixin c).
 
-Structure type (disp : unit) := Pack { sort; _ : class_of sort }.
+Structure type (disp : disp_t) := Pack { sort; _ : class_of sort }.
 
 Local Coercion sort : type >-> Sortclass.
 
-Variables (T : Type) (disp : unit) (cT : type disp).
+Variables (T : Type) (disp : disp_t) (cT : type disp).
 
 Definition class := let: Pack _ c as cT' := cT return class_of cT' in c.
 
@@ -1946,11 +1952,11 @@ Local Coercion base : class_of >-> POrder.class_of.
 Definition rel_class T (c : class_of T) :=
   RelOrder.Join.Class (rel_mixin (mixin c)).
 
-Structure type (disp : unit) := Pack { sort; _ : class_of sort }.
+Structure type (disp : disp_t) := Pack { sort; _ : class_of sort }.
 
 Local Coercion sort : type >-> Sortclass.
 
-Variables (T : Type) (disp : unit) (cT : type disp).
+Variables (T : Type) (disp : disp_t) (cT : type disp).
 
 Definition class := let: Pack _ c as cT' := cT return class_of cT' in c.
 Definition clone c of phant_id class c := @Pack disp T c.
@@ -2017,11 +2023,11 @@ Local Coercion base2 T (c : class_of T) : BPOrder.class_of T :=
 Definition rel_class T (c : class_of T) :=
   @RelOrder.BJoin.Class _ _ _ _ _ c (mixin c).
 
-Structure type (disp : unit) := Pack { sort; _ : class_of sort }.
+Structure type (disp : disp_t) := Pack { sort; _ : class_of sort }.
 
 Local Coercion sort : type >-> Sortclass.
 
-Variables (T : Type) (disp : unit) (cT : type disp).
+Variables (T : Type) (disp : disp_t) (cT : type disp).
 
 Definition class := let: Pack _ c as cT' := cT return class_of cT' in c.
 
@@ -2082,11 +2088,11 @@ Local Coercion base2 T (c : class_of T) : TPOrder.class_of T :=
 Definition rel_class T (c : class_of T) :=
   @RelOrder.TJoin.Class _ _ _ _ _ c (mixin c).
 
-Structure type (disp : unit) := Pack { sort; _ : class_of sort }.
+Structure type (disp : disp_t) := Pack { sort; _ : class_of sort }.
 
 Local Coercion sort : type >-> Sortclass.
 
-Variables (T : Type) (disp : unit) (cT : type disp).
+Variables (T : Type) (disp : disp_t) (cT : type disp).
 
 Definition class := let: Pack _ c as cT' := cT return class_of cT' in c.
 
@@ -2149,11 +2155,11 @@ Local Coercion base3 T (c : class_of T) : TBPOrder.class_of T :=
 Definition rel_class T (c : class_of T) :=
   @RelOrder.TBJoin.Class _ _ _ _ _ _ c (mixin c).
 
-Structure type (disp : unit) := Pack { sort; _ : class_of sort }.
+Structure type (disp : disp_t) := Pack { sort; _ : class_of sort }.
 
 Local Coercion sort : type >-> Sortclass.
 
-Variables (T : Type) (disp : unit) (cT : type disp).
+Variables (T : Type) (disp : disp_t) (cT : type disp).
 
 Definition class := let: Pack _ c as cT' := cT return class_of cT' in c.
 
@@ -2242,11 +2248,11 @@ Local Coercion base2 T (c : class_of T) : JoinSemilattice.class_of T :=
 Definition rel_class T (c : class_of T) :=
   @RelOrder.Lattice.Class _ _ _ _ _ c (mixin c).
 
-Structure type (disp : unit) := Pack { sort; _ : class_of sort }.
+Structure type (disp : disp_t) := Pack { sort; _ : class_of sort }.
 
 Local Coercion sort : type >-> Sortclass.
 
-Variables (T : Type) (disp : unit) (cT : type disp).
+Variables (T : Type) (disp : disp_t) (cT : type disp).
 
 Definition class := let: Pack _ c as cT' := cT return class_of cT' in c.
 
@@ -2310,11 +2316,11 @@ Local Coercion base3 T (c : class_of T) : BJoinSemilattice.class_of T :=
 Definition rel_class T (c : class_of T) :=
   @RelOrder.BLattice.Class _ _ _ _ _ _ c (mixin c).
 
-Structure type (disp : unit) := Pack { sort; _ : class_of sort }.
+Structure type (disp : disp_t) := Pack { sort; _ : class_of sort }.
 
 Local Coercion sort : type >-> Sortclass.
 
-Variables (T : Type) (disp : unit) (cT : type disp).
+Variables (T : Type) (disp : disp_t) (cT : type disp).
 
 Definition class := let: Pack _ c as cT' := cT return class_of cT' in c.
 
@@ -2404,11 +2410,11 @@ Local Coercion base3 T (c : class_of T) : TJoinSemilattice.class_of T :=
 Definition rel_class T (c : class_of T) :=
   @RelOrder.TLattice.Class _ _ _ _ _ _ c (mixin c).
 
-Structure type (disp : unit) := Pack { sort; _ : class_of sort }.
+Structure type (disp : disp_t) := Pack { sort; _ : class_of sort }.
 
 Local Coercion sort : type >-> Sortclass.
 
-Variables (T : Type) (disp : unit) (cT : type disp).
+Variables (T : Type) (disp : disp_t) (cT : type disp).
 
 Definition class := let: Pack _ c as cT' := cT return class_of cT' in c.
 
@@ -2500,11 +2506,11 @@ Local Coercion base4 T (c : class_of T) : TBJoinSemilattice.class_of T :=
 Definition rel_class T (c : class_of T) :=
   @RelOrder.TBLattice.Class _ _ _ _ _ _ _ c (mixin c).
 
-Structure type (disp : unit) := Pack { sort; _ : class_of sort }.
+Structure type (disp : disp_t) := Pack { sort; _ : class_of sort }.
 
 Local Coercion sort : type >-> Sortclass.
 
-Variables (T : Type) (disp : unit) (cT : type disp).
+Variables (T : Type) (disp : disp_t) (cT : type disp).
 
 Definition class := let: Pack _ c as cT' := cT return class_of cT' in c.
 
@@ -2650,10 +2656,10 @@ End Exports.
 End TBLattice.
 Import TBLattice.Exports.
 
-Definition meet (disp : unit) (T : meetSemilatticeType disp) : T -> T -> T :=
+Definition meet (disp : disp_t) (T : meetSemilatticeType disp) : T -> T -> T :=
   RelOrder.meet (MeetOrder _ _ _ (MeetSemilattice.class T)).
 
-Definition join (disp : unit) (T : joinSemilatticeType disp) : T -> T -> T :=
+Definition join (disp : disp_t) (T : joinSemilatticeType disp) : T -> T -> T :=
   RelOrder.join (JoinOrder _ _ _ (JoinSemilattice.class T)).
 
 Arguments meet {disp T}.
@@ -2800,11 +2806,11 @@ Local Coercion base : class_of >-> Lattice.class_of.
 Definition rel_class T (c : class_of T) :=
   RelOrder.DistrLattice.Class (mixin c).
 
-Structure type (disp : unit) := Pack { sort; _ : class_of sort }.
+Structure type (disp : disp_t) := Pack { sort; _ : class_of sort }.
 
 Local Coercion sort : type >-> Sortclass.
 
-Variables (T : Type) (disp : unit) (cT : type disp).
+Variables (T : Type) (disp : disp_t) (cT : type disp).
 
 Definition class := let: Pack _ c as cT' := cT return class_of cT' in c.
 Definition clone c of phant_id class c := @Pack disp T c.
@@ -2878,11 +2884,11 @@ Local Coercion base2 T (c : class_of T) : BLattice.class_of T :=
 Definition rel_class T (c : class_of T) :=
   @RelOrder.BDistrLattice.Class _ _ _ _ _ _ c (mixin c).
 
-Structure type (disp : unit) := Pack { sort; _ : class_of sort }.
+Structure type (disp : disp_t) := Pack { sort; _ : class_of sort }.
 
 Local Coercion sort : type >-> Sortclass.
 
-Variables (T : Type) (disp : unit) (cT : type disp).
+Variables (T : Type) (disp : disp_t) (cT : type disp).
 
 Definition class := let: Pack _ c as cT' := cT return class_of cT' in c.
 
@@ -2970,11 +2976,11 @@ Local Coercion base2 T (c : class_of T) : TLattice.class_of T :=
 Definition rel_class T (c : class_of T) :=
   @RelOrder.TDistrLattice.Class _ _ _ _ _ _ c (mixin c).
 
-Structure type (disp : unit) := Pack { sort; _ : class_of sort }.
+Structure type (disp : disp_t) := Pack { sort; _ : class_of sort }.
 
 Local Coercion sort : type >-> Sortclass.
 
-Variables (T : Type) (disp : unit) (cT : type disp).
+Variables (T : Type) (disp : disp_t) (cT : type disp).
 
 Definition class := let: Pack _ c as cT' := cT return class_of cT' in c.
 
@@ -3064,11 +3070,11 @@ Local Coercion base3 T (c : class_of T) : TBLattice.class_of T :=
 Definition rel_class T (c : class_of T) :=
   @RelOrder.TBDistrLattice.Class _ _ _ _ _ _ _ c (mixin c).
 
-Structure type (disp : unit) := Pack { sort; _ : class_of sort }.
+Structure type (disp : disp_t) := Pack { sort; _ : class_of sort }.
 
 Local Coercion sort : type >-> Sortclass.
 
-Variables (T : Type) (disp : unit) (cT : type disp).
+Variables (T : Type) (disp : disp_t) (cT : type disp).
 
 Definition class := let: Pack _ c as cT' := cT return class_of cT' in c.
 
@@ -3224,7 +3230,7 @@ Section ClassDef.
 Set Primitive Projections.
 
 Record mixin_of (T0 : Type) (b : BDistrLattice.class_of T0)
-                (T := BDistrLattice.Pack tt b) := Mixin {
+                (T := BDistrLattice.Pack disp_tt b) := Mixin {
   sub : T -> T -> T;
   subKI  : forall x y, y `&` sub x y = bottom;
   joinIB : forall x y, (x `&` y) `|` sub x y = x;
@@ -3239,11 +3245,11 @@ Unset Primitive Projections.
 
 Local Coercion base : class_of >-> BDistrLattice.class_of.
 
-Structure type (disp : unit) := Pack { sort; _ : class_of sort }.
+Structure type (disp : disp_t) := Pack { sort; _ : class_of sort }.
 
 Local Coercion sort : type >-> Sortclass.
 
-Variables (T : Type) (disp : unit) (cT : type disp).
+Variables (T : Type) (disp : disp_t) (cT : type disp).
 
 Definition class := let: Pack _ c as cT' := cT return class_of cT' in c.
 Definition clone c of phant_id class c := @Pack disp T c.
@@ -3315,7 +3321,7 @@ End Exports.
 End CBDistrLattice.
 Import CBDistrLattice.Exports.
 
-Definition sub {disp : unit} {T : cbDistrLatticeType disp} : T -> T -> T :=
+Definition sub {disp : disp_t} {T : cbDistrLatticeType disp} : T -> T -> T :=
   CBDistrLattice.sub (CBDistrLattice.mixin (CBDistrLattice.class T)).
 
 Module Import CBDistrLatticeSyntax.
@@ -3328,7 +3334,7 @@ Section ClassDef.
 Set Primitive Projections.
 
 Record mixin_of (T0 : Type) (b : TBDistrLattice.class_of T0)
-                (T := TBDistrLattice.Pack tt b) (sub : T -> T -> T) := Mixin {
+                (T := TBDistrLattice.Pack disp_tt b) (sub : T -> T -> T) := Mixin {
   compl : T -> T;
   complE : forall x, compl x = sub top x
 }.
@@ -3345,11 +3351,11 @@ Local Coercion base : class_of >-> TBDistrLattice.class_of.
 Local Coercion base2 T (c : class_of T) : CBDistrLattice.class_of T :=
   CBDistrLattice.Class (mixin1 c).
 
-Structure type (disp : unit) := Pack { sort; _ : class_of sort }.
+Structure type (disp : disp_t) := Pack { sort; _ : class_of sort }.
 
 Local Coercion sort : type >-> Sortclass.
 
-Variables (T : Type) (disp : unit) (cT : type disp).
+Variables (T : Type) (disp : disp_t) (cT : type disp).
 
 Definition class := let: Pack _ c as cT' := cT return class_of cT' in c.
 Definition clone c of phant_id class c := @Pack disp T c.
@@ -3488,7 +3494,7 @@ End Exports.
 End CTBDistrLattice.
 Import CTBDistrLattice.Exports.
 
-Definition compl {disp : unit} {T : ctbDistrLatticeType disp} : T -> T :=
+Definition compl {disp : disp_t} {T : ctbDistrLatticeType disp} : T -> T :=
   CTBDistrLattice.compl (CTBDistrLattice.mixin2 (CTBDistrLattice.class T)).
 
 Module Import CTBDistrLatticeSyntax.
@@ -3512,11 +3518,11 @@ Local Coercion base : class_of >-> DistrLattice.class_of.
 Definition rel_class T (c : class_of T) :=
   @RelOrder.Total.Class _ _ _ _ _ c (@mixin _ c).
 
-Structure type (disp : unit) := Pack { sort; _ : class_of sort }.
+Structure type (disp : disp_t) := Pack { sort; _ : class_of sort }.
 
 Local Coercion sort : type >-> Sortclass.
 
-Variables (T : Type) (disp : unit) (cT : type disp).
+Variables (T : Type) (disp : disp_t) (cT : type disp).
 
 Definition class := let: Pack _ c as cT' := cT return class_of cT' in c.
 Definition clone c & phant_id class c := @Pack disp T c.
@@ -3591,11 +3597,11 @@ Local Coercion base2 T (c : class_of T) : BDistrLattice.class_of T :=
 Definition rel_class T (c : class_of T) :=
   @RelOrder.BTotal.Class _ _ _ _ _ _ c (mixin c).
 
-Structure type (disp : unit) := Pack { sort; _ : class_of sort }.
+Structure type (disp : disp_t) := Pack { sort; _ : class_of sort }.
 
 Local Coercion sort : type >-> Sortclass.
 
-Variables (T : Type) (disp : unit) (cT : type disp).
+Variables (T : Type) (disp : disp_t) (cT : type disp).
 
 Definition class := let: Pack _ c as cT' := cT return class_of cT' in c.
 
@@ -3689,11 +3695,11 @@ Local Coercion base2 T (c : class_of T) : TDistrLattice.class_of T :=
 Definition rel_class T (c : class_of T) :=
   @RelOrder.TTotal.Class _ _ _ _ _ _ c (mixin c).
 
-Structure type (disp : unit) := Pack { sort; _ : class_of sort }.
+Structure type (disp : disp_t) := Pack { sort; _ : class_of sort }.
 
 Local Coercion sort : type >-> Sortclass.
 
-Variables (T : Type) (disp : unit) (cT : type disp).
+Variables (T : Type) (disp : disp_t) (cT : type disp).
 
 Definition class := let: Pack _ c as cT' := cT return class_of cT' in c.
 
@@ -3789,11 +3795,11 @@ Local Coercion base3 T (c : class_of T) : TBDistrLattice.class_of T :=
 Definition rel_class T (c : class_of T) :=
   @RelOrder.TBTotal.Class _ _ _ _ _ _ _ c (mixin c).
 
-Structure type (disp : unit) := Pack { sort; _ : class_of sort }.
+Structure type (disp : disp_t) := Pack { sort; _ : class_of sort }.
 
 Local Coercion sort : type >-> Sortclass.
 
-Variables (T : Type) (disp : unit) (cT : type disp).
+Variables (T : Type) (disp : disp_t) (cT : type disp).
 
 Definition class := let: Pack _ c as cT' := cT return class_of cT' in c.
 
@@ -3962,7 +3968,7 @@ Import TBTotal.Exports.
 
 Module RelOrderCoercions.
 Section RelOrderCoercions.
-Variable (disp : unit).
+Variable (disp : disp_t).
 
 Definition pOrder (T : porderType disp) : {pOrder T} :=
   POrder le lt (POrder.class T).
@@ -4125,11 +4131,11 @@ Local Coercion base : class_of >-> POrder.class_of.
 Local Coercion base2 T (c : class_of T) : Finite.class_of T :=
   Finite.Class (mixin c).
 
-Structure type (disp : unit) := Pack { sort; _ : class_of sort }.
+Structure type (disp : disp_t) := Pack { sort; _ : class_of sort }.
 
 Local Coercion sort : type >-> Sortclass.
 
-Variables (T : Type) (disp : unit) (cT : type disp).
+Variables (T : Type) (disp : disp_t) (cT : type disp).
 
 Definition class := let: Pack _ c as cT' := cT return class_of cT' in c.
 
@@ -4187,11 +4193,11 @@ Local Coercion base : class_of >-> BPOrder.class_of.
 Local Coercion base2 T (c : class_of T) : FinPOrder.class_of T :=
   @FinPOrder.Class T c (mixin c).
 
-Structure type (disp : unit) := Pack { sort; _ : class_of sort }.
+Structure type (disp : disp_t) := Pack { sort; _ : class_of sort }.
 
 Local Coercion sort : type >-> Sortclass.
 
-Variables (T : Type) (disp : unit) (cT : type disp).
+Variables (T : Type) (disp : disp_t) (cT : type disp).
 
 Definition class := let: Pack _ c as cT' := cT return class_of cT' in c.
 
@@ -4257,11 +4263,11 @@ Local Coercion base : class_of >-> TPOrder.class_of.
 Local Coercion base2 T (c : class_of T) : FinPOrder.class_of T :=
   @FinPOrder.Class T c (mixin c).
 
-Structure type (disp : unit) := Pack { sort; _ : class_of sort }.
+Structure type (disp : disp_t) := Pack { sort; _ : class_of sort }.
 
 Local Coercion sort : type >-> Sortclass.
 
-Variables (T : Type) (disp : unit) (cT : type disp).
+Variables (T : Type) (disp : disp_t) (cT : type disp).
 
 Definition class := let: Pack _ c as cT' := cT return class_of cT' in c.
 
@@ -4329,11 +4335,11 @@ Local Coercion base2 T (c : class_of T) : FinBPOrder.class_of T :=
 Local Coercion base3 T (c : class_of T) : FinTPOrder.class_of T :=
   @FinTPOrder.Class T c (mixin c).
 
-Structure type (disp : unit) := Pack { sort; _ : class_of sort }.
+Structure type (disp : disp_t) := Pack { sort; _ : class_of sort }.
 
 Local Coercion sort : type >-> Sortclass.
 
-Variables (T : Type) (disp : unit) (cT : type disp).
+Variables (T : Type) (disp : disp_t) (cT : type disp).
 
 Definition class := let: Pack _ c as cT' := cT return class_of cT' in c.
 
@@ -4423,11 +4429,11 @@ Local Coercion base : class_of >-> MeetSemilattice.class_of.
 Local Coercion base2 T (c : class_of T) : FinPOrder.class_of T :=
   @FinPOrder.Class T c (mixin c).
 
-Structure type (disp : unit) := Pack { sort; _ : class_of sort }.
+Structure type (disp : disp_t) := Pack { sort; _ : class_of sort }.
 
 Local Coercion sort : type >-> Sortclass.
 
-Variables (T : Type) (disp : unit) (cT : type disp).
+Variables (T : Type) (disp : disp_t) (cT : type disp).
 
 Definition class := let: Pack _ c as cT' := cT return class_of cT' in c.
 
@@ -4497,11 +4503,11 @@ Local Coercion base2 T (c : class_of T) : FinMeetSemilattice.class_of T :=
 Local Coercion base3 T (c : class_of T) : FinBPOrder.class_of T :=
   @FinBPOrder.Class T c (mixin c).
 
-Structure type (disp : unit) := Pack { sort; _ : class_of sort }.
+Structure type (disp : disp_t) := Pack { sort; _ : class_of sort }.
 
 Local Coercion sort : type >-> Sortclass.
 
-Variables (T : Type) (disp : unit) (cT : type disp).
+Variables (T : Type) (disp : disp_t) (cT : type disp).
 
 Definition class := let: Pack _ c as cT' := cT return class_of cT' in c.
 
@@ -4598,11 +4604,11 @@ Local Coercion base : class_of >-> JoinSemilattice.class_of.
 Local Coercion base2 T (c : class_of T) : FinPOrder.class_of T :=
   @FinPOrder.Class T c (mixin c).
 
-Structure type (disp : unit) := Pack { sort; _ : class_of sort }.
+Structure type (disp : disp_t) := Pack { sort; _ : class_of sort }.
 
 Local Coercion sort : type >-> Sortclass.
 
-Variables (T : Type) (disp : unit) (cT : type disp).
+Variables (T : Type) (disp : disp_t) (cT : type disp).
 
 Definition class := let: Pack _ c as cT' := cT return class_of cT' in c.
 
@@ -4672,11 +4678,11 @@ Local Coercion base2 T (c : class_of T) : FinJoinSemilattice.class_of T :=
 Local Coercion base3 T (c : class_of T) : FinTPOrder.class_of T :=
   @FinTPOrder.Class T c (mixin c).
 
-Structure type (disp : unit) := Pack { sort; _ : class_of sort }.
+Structure type (disp : disp_t) := Pack { sort; _ : class_of sort }.
 
 Local Coercion sort : type >-> Sortclass.
 
-Variables (T : Type) (disp : unit) (cT : type disp).
+Variables (T : Type) (disp : disp_t) (cT : type disp).
 
 Definition class := let: Pack _ c as cT' := cT return class_of cT' in c.
 
@@ -4775,11 +4781,11 @@ Local Coercion base2 T (c : class_of T) : FinMeetSemilattice.class_of T :=
 Local Coercion base3 T (c : class_of T) : FinJoinSemilattice.class_of T :=
   @FinJoinSemilattice.Class T c (mixin c).
 
-Structure type (disp : unit) := Pack { sort; _ : class_of sort }.
+Structure type (disp : disp_t) := Pack { sort; _ : class_of sort }.
 
 Local Coercion sort : type >-> Sortclass.
 
-Variables (T : Type) (disp : unit) (cT : type disp).
+Variables (T : Type) (disp : disp_t) (cT : type disp).
 
 Definition class := let: Pack _ c as cT' := cT return class_of cT' in c.
 
@@ -4879,11 +4885,11 @@ Local Coercion base4 T (c : class_of T) : FinBMeetSemilattice.class_of T :=
 Local Coercion base5 T (c : class_of T) : FinTJoinSemilattice.class_of T :=
   @FinTJoinSemilattice.Class T c (mixin c).
 
-Structure type (disp : unit) := Pack { sort; _ : class_of sort }.
+Structure type (disp : disp_t) := Pack { sort; _ : class_of sort }.
 
 Local Coercion sort : type >-> Sortclass.
 
-Variables (T : Type) (disp : unit) (cT : type disp).
+Variables (T : Type) (disp : disp_t) (cT : type disp).
 
 Definition class := let: Pack _ c as cT' := cT return class_of cT' in c.
 
@@ -5366,11 +5372,11 @@ Local Coercion base : class_of >-> DistrLattice.class_of.
 Local Coercion base2 T (c : class_of T) : FinLattice.class_of T :=
   @FinLattice.Class T c (mixin c).
 
-Structure type (disp : unit) := Pack { sort; _ : class_of sort }.
+Structure type (disp : disp_t) := Pack { sort; _ : class_of sort }.
 
 Local Coercion sort : type >-> Sortclass.
 
-Variables (T : Type) (disp : unit) (cT : type disp).
+Variables (T : Type) (disp : disp_t) (cT : type disp).
 
 Definition class := let: Pack _ c as cT' := cT return class_of cT' in c.
 
@@ -5466,11 +5472,11 @@ Local Coercion base2 T (c : class_of T) : FinTBLattice.class_of T :=
 Local Coercion base3 T (c : class_of T) : FinDistrLattice.class_of T :=
   @FinDistrLattice.Class T c (mixin c).
 
-Structure type (disp : unit) := Pack { sort; _ : class_of sort }.
+Structure type (disp : disp_t) := Pack { sort; _ : class_of sort }.
 
 Local Coercion sort : type >-> Sortclass.
 
-Variables (T : Type) (disp : unit) (cT : type disp).
+Variables (T : Type) (disp : disp_t) (cT : type disp).
 
 Definition class := let: Pack _ c as cT' := cT return class_of cT' in c.
 
@@ -5799,11 +5805,11 @@ Local Coercion base : class_of >-> CTBDistrLattice.class_of.
 Local Coercion base2 T (c : class_of T) : FinTBDistrLattice.class_of T :=
   @FinTBDistrLattice.Class T c (mixin c).
 
-Structure type (disp : unit) := Pack { sort; _ : class_of sort }.
+Structure type (disp : disp_t) := Pack { sort; _ : class_of sort }.
 
 Local Coercion sort : type >-> Sortclass.
 
-Variables (T : Type) (disp : unit) (cT : type disp).
+Variables (T : Type) (disp : disp_t) (cT : type disp).
 
 Definition class := let: Pack _ c as cT' := cT return class_of cT' in c.
 
@@ -6038,11 +6044,11 @@ Local Coercion base : class_of >-> Total.class_of.
 Local Coercion base2 T (c : class_of T) : FinDistrLattice.class_of T :=
   @FinDistrLattice.Class T c (mixin c).
 
-Structure type (disp : unit) := Pack { sort; _ : class_of sort }.
+Structure type (disp : disp_t) := Pack { sort; _ : class_of sort }.
 
 Local Coercion sort : type >-> Sortclass.
 
-Variables (T : Type) (disp : unit) (cT : type disp).
+Variables (T : Type) (disp : disp_t) (cT : type disp).
 
 Definition class := let: Pack _ c as cT' := cT return class_of cT' in c.
 
@@ -6144,11 +6150,11 @@ Local Coercion base2 T (c : class_of T) : FinTBDistrLattice.class_of T :=
 Local Coercion base3 T (c : class_of T) : FinTotal.class_of T :=
   @FinTotal.Class T c (mixin c).
 
-Structure type (disp : unit) := Pack { sort; _ : class_of sort }.
+Structure type (disp : disp_t) := Pack { sort; _ : class_of sort }.
 
 Local Coercion sort : type >-> Sortclass.
 
-Variables (T : Type) (disp : unit) (cT : type disp).
+Variables (T : Type) (disp : disp_t) (cT : type disp).
 
 Definition class := let: Pack _ c as cT' := cT return class_of cT' in c.
 
@@ -6487,7 +6493,7 @@ Canonical dual_choiceType (T : choiceType) := [choiceType of T^d].
 Canonical dual_countType (T : countType) := [countType of T^d].
 Canonical dual_finType (T : finType) := [finType of T^d].
 
-Context {disp : unit}.
+Context {disp : disp_t}.
 
 Canonical dual_porderType (T : porderType disp) :=
   POrderType (dual_display disp) T^d
@@ -6590,7 +6596,7 @@ End DualOrder.
 Module Import POrderTheory.
 Section POrderTheory.
 
-Context {disp : unit} {T : porderType disp}.
+Context {disp : disp_t} {T : porderType disp}.
 
 Implicit Types (x y : T) (s : seq T).
 
@@ -7153,7 +7159,7 @@ Proof. exact: rcomparable_bigr. Qed.
 End POrderTheory.
 
 Section ContraTheory.
-Context {disp1 disp2 : unit} {T1 : porderType disp1} {T2 : porderType disp2}.
+Context {disp1 disp2 : disp_t} {T1 : porderType disp1} {T2 : porderType disp2}.
 Implicit Types (x y : T1) (z t : T2) (b : bool) (m n : nat) (P : Prop).
 
 Lemma comparable_contraTle b x y : x >=< y -> (y < x -> ~~ b) -> (b -> x <= y).
@@ -7258,7 +7264,7 @@ End ContraTheory.
 
 Section POrderMonotonyTheory.
 
-Context {disp disp' : unit} {T : porderType disp} {T' : porderType disp'}.
+Context {disp disp' : disp_t} {T : porderType disp} {T' : porderType disp'}.
 Implicit Types (m n p : nat) (x y z : T) (u v w : T').
 Variables (D D' : {pred T}) (f : T -> T').
 
@@ -7340,7 +7346,7 @@ Arguments comparable_max_idPl {disp T x y _}.
 
 Module Import BPOrderTheory.
 Section BPOrderTheory.
-Context {disp : unit} {T : bPOrderType disp}.
+Context {disp : disp_t} {T : bPOrderType disp}.
 Implicit Types (x y : T).
 
 Lemma le0x x : 0 <= x. Proof. exact: rle0x. Qed.
@@ -7360,7 +7366,7 @@ End BPOrderTheory.
 
 Module Import TPOrderTheory.
 Section TPOrderTheory.
-Context {disp : unit} {T : tPOrderType disp}.
+Context {disp : disp_t} {T : tPOrderType disp}.
 Implicit Types (x y : T).
 
 Lemma lex1 (x : T) : x <= 1. Proof. exact: rlex1. Qed.
@@ -7376,7 +7382,7 @@ End TPOrderTheory.
 
 Module Import MeetTheory.
 Section MeetTheory.
-Context {disp : unit} {L : meetSemilatticeType disp}.
+Context {disp : disp_t} {L : meetSemilatticeType disp}.
 Implicit Types (x y : L).
 
 Lemma meetC : commutative (@meet _ L). Proof. exact: rmeetC. Qed.
@@ -7432,7 +7438,7 @@ Arguments meet_idPr {disp L x y}.
 
 Module Import BMeetTheory.
 Section BMeetTheory.
-Context {disp : unit} {L : bMeetSemilatticeType disp}.
+Context {disp : disp_t} {L : bMeetSemilatticeType disp}.
 
 Lemma meet0x : left_zero 0 (@meet _ L). Proof. exact: rmeet0x. Qed.
 Lemma meetx0 : right_zero 0 (@meet _ L). Proof. exact: rmeetx0. Qed.
@@ -7444,7 +7450,7 @@ End BMeetTheory.
 
 Module Import TMeetTheory.
 Section TMeetTheory.
-Context {disp : unit} {L : tMeetSemilatticeType disp}.
+Context {disp : disp_t} {L : tMeetSemilatticeType disp}.
 Implicit Types (I : finType) (T : eqType) (x y : L).
 
 Lemma meetx1 : right_id 1 (@meet _ L). Proof. exact: rmeetx1. Qed.
@@ -7510,7 +7516,7 @@ End TMeetTheory.
 
 Module Import JoinTheory.
 Section JoinTheory.
-Context {disp : unit} {L : joinSemilatticeType disp}.
+Context {disp : disp_t} {L : joinSemilatticeType disp}.
 Implicit Types (x y : L).
 
 Lemma joinC : commutative (@join _ L). Proof. exact: rjoinC. Qed.
@@ -7563,7 +7569,7 @@ Arguments join_idPr {disp L x y}.
 
 Module Import BJoinTheory.
 Section BJoinTheory.
-Context {disp : unit} {L : bJoinSemilatticeType disp}.
+Context {disp : disp_t} {L : bJoinSemilatticeType disp}.
 Implicit Types (I : finType) (T : eqType) (x y : L).
 
 Lemma joinx0 : right_id 0 (@join _ L). Proof. exact: rjoinx0. Qed.
@@ -7633,7 +7639,7 @@ End BJoinTheory.
 
 Module Import TJoinTheory.
 Section TJoinTheory.
-Context {disp : unit} {L : tJoinSemilatticeType disp}.
+Context {disp : disp_t} {L : tJoinSemilatticeType disp}.
 
 Lemma joinx1 : right_zero 1 (@join _ L). Proof. exact: rjoinx1. Qed.
 Lemma join1x : left_zero 1 (@join _ L). Proof. exact: rjoin1x. Qed.
@@ -7645,7 +7651,7 @@ End TJoinTheory.
 
 Module Import LatticeTheory.
 Section LatticeTheory.
-Context {disp : unit} {L : latticeType disp}.
+Context {disp : disp_t} {L : latticeType disp}.
 Implicit Types (x y : L).
 
 Lemma meetUK x y : (x `&` y) `|` y = y. Proof. exact: rmeetUK. Qed.
@@ -7686,7 +7692,7 @@ End LatticeTheory.
 
 Module Import DistrLatticeTheory.
 Section DistrLatticeTheory.
-Context {disp : unit}.
+Context {disp : disp_t}.
 Variable L : distrLatticeType disp.
 Implicit Types (x y : L).
 
@@ -7707,7 +7713,7 @@ End DistrLatticeTheory.
 
 Module Import BDistrLatticeTheory.
 Section BDistrLatticeTheory.
-Context {disp : unit} {L : bDistrLatticeType disp}.
+Context {disp : disp_t} {L : bDistrLatticeType disp}.
 Implicit Types (I : finType) (T : eqType) (x y z : L).
 Local Notation "0" := bottom.
 (* Distributive lattice theory with 0 *)
@@ -7739,7 +7745,7 @@ End BDistrLatticeTheory.
 
 Module Import TDistrLatticeTheory.
 Section TDistrLatticeTheory.
-Context {disp : unit} {L : tDistrLatticeType disp}.
+Context {disp : disp_t} {L : tDistrLatticeType disp}.
 Implicit Types (I : finType) (T : eqType) (x y : L).
 Local Notation "1" := top.
 (* Distributive lattice theory with 1 *)
@@ -7771,7 +7777,7 @@ End TDistrLatticeTheory.
 
 Module Import TotalTheory.
 Section TotalTheory.
-Context {disp : unit} {T : orderType disp}.
+Context {disp : disp_t} {T : orderType disp}.
 Implicit Types (x y z t : T) (s : seq T).
 
 Lemma le_total : total (<=%O : rel T). Proof. exact: le_total. Qed.
@@ -8017,7 +8023,7 @@ Arguments max_idPl {disp T x y}.
 Module Import DualOrderTheory.
 Section DualOrderTheory.
 
-Context {disp : unit} {T : orderType disp}.
+Context {disp : disp_t} {T : orderType disp}.
 Implicit Type s : seq T.
 
 Lemma sorted_filter_gt x s :
@@ -8065,7 +8071,7 @@ End DualOrderTheory.
 (* contra lemmas *)
 
 Section ContraTheory.
-Context {disp1 disp2 : unit} {T1 : porderType disp1} {T2 : orderType disp2}.
+Context {disp1 disp2 : disp_t} {T1 : porderType disp1} {T2 : orderType disp2}.
 Implicit Types (x y : T1) (z t : T2) (b : bool) (m n : nat) (P : Prop).
 
 Lemma contraTle b z t : (t < z -> ~~ b) -> (b -> z <= t).
@@ -8126,7 +8132,7 @@ End ContraTheory.
 
 Section TotalMonotonyTheory.
 
-Context {disp : unit} {disp' : unit}.
+Context {disp : disp_t} {disp' : disp_t}.
 Context {T : orderType disp} {T' : porderType disp'}.
 Variables (D : {pred T}) (f : T -> T').
 
@@ -8149,7 +8155,7 @@ End TotalTheory.
 
 Module Import CBDistrLatticeTheory.
 Section CBDistrLatticeTheory.
-Context {disp : unit} {L : cbDistrLatticeType disp}.
+Context {disp : disp_t} {L : cbDistrLatticeType disp}.
 Implicit Types (x y z : L).
 Local Notation "0" := bottom.
 
@@ -8316,7 +8322,7 @@ End CBDistrLatticeTheory.
 
 Module Import CTBDistrLatticeTheory.
 Section CTBDistrLatticeTheory.
-Context {disp : unit} {L : ctbDistrLatticeType disp}.
+Context {disp : disp_t} {L : ctbDistrLatticeType disp}.
 Implicit Types (x y z : L).
 Local Notation "0" := bottom.
 Local Notation "1" := top.
@@ -8403,27 +8409,27 @@ Module Exports.
 (* Alternative constructors for some relorder factories that lets us infer    *)
 (* order instances from types rather than relation:                           *)
 
-Definition BottomMixin (disp : unit) (T : porderType disp) bottom :
+Definition BottomMixin (disp : disp_t) (T : porderType disp) bottom :
   (forall x : T, bottom <= x) -> bottomRelMixin T := @BottomRelMixin _ _ bottom.
 
-Definition TopMixin (disp : unit) (T : porderType disp) top :
+Definition TopMixin (disp : disp_t) (T : porderType disp) top :
   (forall x : T, x <= top) -> topRelMixin T := @TopRelMixin _ _ top.
 
-Definition MeetMixin (disp : unit) (T : porderType disp) meet :
+Definition MeetMixin (disp : disp_t) (T : porderType disp) meet :
   commutative meet -> associative meet ->
   (forall x y : T, x <= y = (meet x y == x)) -> meetRelMixin T :=
   @MeetRelMixin _ _ meet.
 
-Definition JoinMixin (disp : unit) (T : porderType disp) join :
+Definition JoinMixin (disp : disp_t) (T : porderType disp) join :
   commutative join -> associative join ->
   (forall x y : T, y <= x = (join x y == x)) -> joinRelMixin T :=
   @JoinRelMixin _ _ join.
 
-Definition DistrLatticeMixin (disp : unit) (T : latticeType disp) :
+Definition DistrLatticeMixin (disp : disp_t) (T : latticeType disp) :
   left_distributive (@meet _ T) (@join _ T) -> distrLatticeRelMixin T :=
   @DistrLatticeRelMixin _ _.
 
-Definition LatticePOrderMixin (disp : unit) (T : porderType disp) meet join :
+Definition LatticePOrderMixin (disp : disp_t) (T : porderType disp) meet join :
   commutative meet -> commutative join ->
   associative meet -> associative join ->
   (forall y x : T, meet x (join x y) = x) ->
@@ -8432,7 +8438,7 @@ Definition LatticePOrderMixin (disp : unit) (T : porderType disp) meet join :
   @LatticePOrderRelMixin _ _ meet join.
 
 Definition DistrLatticePOrderMixin
-           (disp : unit) (T : porderType disp) meet join :
+           (disp : disp_t) (T : porderType disp) meet join :
   commutative meet -> commutative join ->
   associative meet -> associative join ->
   (forall y x : T, meet x (join x y) = x) ->
@@ -8488,7 +8494,7 @@ Import RelOrderMixin.Exports.
 
 Module TotalLatticeMixin.
 Section TotalLatticeMixin.
-Variable (disp : unit) (T : latticeType disp).
+Variable (disp : disp_t) (T : latticeType disp).
 
 Definition of_ (phT : phant T) := total (<=%O : rel T).
 
@@ -8505,7 +8511,7 @@ Import TotalLatticeMixin.Exports.
 
 Module TotalPOrderMixin.
 Section TotalPOrderMixin.
-Variable (disp : unit) (T : porderType disp).
+Variable (disp : disp_t) (T : porderType disp).
 
 Definition of_ (phT : phant T) := total (<=%O : rel T).
 
@@ -8522,7 +8528,7 @@ Import TotalPOrderMixin.Exports.
 
 Module TotalMeetSemilatticeMixin.
 Section TotalMeetSemilatticeMixin.
-Variable (disp : unit) (T : meetSemilatticeType disp).
+Variable (disp : disp_t) (T : meetSemilatticeType disp).
 
 Definition of_ (phT : phant T) := total (<=%O : rel T).
 
@@ -8539,7 +8545,7 @@ Import TotalMeetSemilatticeMixin.Exports.
 
 Module TotalJoinSemilatticeMixin.
 Section TotalJoinSemilatticeMixin.
-Variable (disp : unit) (T : joinSemilatticeType disp).
+Variable (disp : disp_t) (T : joinSemilatticeType disp).
 
 Definition of_ (phT : phant T) := total (<=%O : rel T).
 
@@ -8556,7 +8562,7 @@ Import TotalJoinSemilatticeMixin.Exports.
 
 Module CBDistrLatticeMixin.
 Section CBDistrLatticeMixin.
-Variable (disp : unit) (T : bDistrLatticeType disp).
+Variable (disp : disp_t) (T : bDistrLatticeType disp).
 
 Record of_ := Build {
   sub : T -> T -> T;
@@ -8580,7 +8586,7 @@ Import CBDistrLatticeMixin.Exports.
 
 Module CTBDistrLatticeMixin.
 Section CTBDistrLatticeMixin.
-Variable (disp : unit) (T : tbDistrLatticeType disp) (sub : T -> T -> T).
+Variable (disp : disp_t) (T : tbDistrLatticeType disp) (sub : T -> T -> T).
 
 Record of_ := Build {
   compl : T -> T;
@@ -8606,8 +8612,8 @@ Section CanMixin.
 
 Section Total.
 
-Variables (disp : unit) (T : porderType disp).
-Variables (disp' : unit) (T' : orderType disp') (f : T -> T').
+Variables (disp : disp_t) (T : porderType disp).
+Variables (disp' : disp_t) (T' : orderType disp') (f : T -> T').
 
 Lemma MonoTotal : {mono f : x y / x <= y} ->
   totalPOrderMixin T' -> totalPOrderMixin T.
@@ -8617,7 +8623,7 @@ End Total.
 
 Section Order.
 
-Variables (T : choiceType) (disp : unit).
+Variables (T : choiceType) (disp : disp_t).
 
 Section Partial.
 Variables (T' : porderType disp) (f : T -> T').
@@ -8669,8 +8675,8 @@ End Order.
 
 Section MeetSemilattice.
 
-Variables (disp : unit) (T : porderType disp).
-Variables (disp' : unit) (T' : meetSemilatticeType disp') (f : T -> T').
+Variables (disp : disp_t) (T : porderType disp).
+Variables (disp' : disp_t) (T' : meetSemilatticeType disp') (f : T -> T').
 
 Variables (f' : T' -> T) (f_can : cancel f f') (f'_can : cancel f' f).
 Variable (f_mono : {mono f : x y / x <= y}).
@@ -8689,8 +8695,8 @@ End MeetSemilattice.
 
 Section JoinSemilattice.
 
-Variables (disp : unit) (T : porderType disp).
-Variables (disp' : unit) (T' : joinSemilatticeType disp') (f : T -> T').
+Variables (disp : disp_t) (T : porderType disp).
+Variables (disp' : disp_t) (T' : joinSemilatticeType disp') (f : T -> T').
 
 Variables (f' : T' -> T) (f_can : cancel f f') (f'_can : cancel f' f).
 Variable (f_mono : {mono f : x y / x <= y}).
@@ -8709,8 +8715,8 @@ End JoinSemilattice.
 
 Section DistrLattice.
 
-Variables (disp : unit) (T : porderType disp).
-Variables (disp' : unit) (T' : distrLatticeType disp') (f : T -> T').
+Variables (disp : disp_t) (T : porderType disp).
+Variables (disp' : disp_t) (T' : distrLatticeType disp') (f : T -> T').
 
 Variables (f' : T' -> T) (f_can : cancel f f') (f'_can : cancel f' f).
 Variable (f_mono : {mono f : x y / x <= y}).
@@ -8744,7 +8750,7 @@ Import CanMixin.Exports.
 Module SubOrder.
 
 Section Partial.
-Context {disp : unit} {T : porderType disp} (P : {pred T}) (sT : subType P).
+Context {disp : disp_t} {T : porderType disp} (P : {pred T}) (sT : subType P).
 
 Definition sub_POrderMixin := PcanPOrderMixin (@valK _ _ sT).
 Canonical sub_POrderType := Eval hnf in POrderType disp sT sub_POrderMixin.
@@ -8755,7 +8761,7 @@ Lemma ltEsub (x y : sT) : (x < y) = (val x < val y). Proof. by []. Qed.
 End Partial.
 
 Section Total.
-Context {disp : unit} {T : orderType disp} (P : {pred T}) (sT : subType P).
+Context {disp : disp_t} {T : orderType disp} (P : {pred T}) (sT : subType P).
 
 Definition sub_TotalOrderMixin : totalPOrderMixin sT :=
   @MonoTotalMixin _ _ _ _ val (fun _ _ => erefl) (@le_total _ T).
@@ -8823,7 +8829,9 @@ Import SubOrder.Exports.
 Module NatOrder.
 Section NatOrder.
 
-Fact nat_display : unit. Proof. exact: tt. Qed.
+Fact nat_d1 : unit. Proof. exact: tt. Qed.
+Fact nat_d2 : unit. Proof. exact: tt. Qed.
+Definition nat_display := {| d1 := nat_d1; d2 := nat_d2 |}.
 
 Lemma ltn_def x y : (x < y)%N = (y != x) && (x <= y)%N.
 Proof. by rewrite ltn_neqAle eq_sym. Qed.
@@ -8878,7 +8886,7 @@ Module NatMonotonyTheory.
 Section NatMonotonyTheory.
 Import NatOrder.Exports.
 
-Context {disp : unit} {T : porderType disp}.
+Context {disp : disp_t} {T : porderType disp}.
 Variables (D : {pred nat}) (f : nat -> T).
 Hypothesis Dconvex : {in D &, forall i j k, i < k < j -> k \in D}.
 
@@ -8962,7 +8970,7 @@ End NatMonotonyTheory.
 (* first parameter is set to dvd_display.                                   *)
 (****************************************************************************)
 
-Fact dvd_display : unit. Proof. exact: tt. Qed.
+Fact dvd_display : disp_t. Proof. exact: {| d1 := tt; d2 := tt |}. Qed.
 
 Module DvdSyntax.
 
@@ -9163,7 +9171,7 @@ Module OrdinalOrder.
 Section OrdinalOrder.
 Import NatOrder.
 
-Lemma ord_display : unit. Proof. exact: tt. Qed.
+Lemma ord_display : disp_t. Proof. exact: {| d1 := tt; d2 := tt |}. Qed.
 
 Section PossiblyTrivial.
 Variable (n : nat).
@@ -9263,7 +9271,7 @@ Module BoolOrder.
 Section BoolOrder.
 Implicit Types (x y : bool).
 
-Fact bool_display : unit. Proof. exact: tt. Qed.
+Fact bool_display : disp_t. Proof. exact: {| d1 := tt; d2 := tt |}. Qed.
 
 Fact andbE x y : x && y = if (x < y)%N then x else y.
 Proof. by case: x y => [] []. Qed.
@@ -9393,7 +9401,7 @@ End BoolOrder.
 (* Definition of prod_display. *)
 (*******************************)
 
-Fact prod_display : unit. Proof. by []. Qed.
+Fact prod_display : disp_t. Proof. by []. Qed.
 
 Module Import ProdSyntax.
 
@@ -9503,7 +9511,7 @@ End ProdSyntax.
 (* Definition of lexi_display. *)
 (*******************************)
 
-Fact lexi_display : unit. Proof. by []. Qed.
+Fact lexi_display : disp_t. Proof. by []. Qed.
 
 Module Import LexiSyntax.
 
@@ -9570,9 +9578,9 @@ End LexiSyntax.
 Module ProdOrder.
 Section ProdOrder.
 
-Definition type (disp : unit) (T T' : Type) := (T * T')%type.
+Definition type (disp : disp_t) (T T' : Type) := (T * T')%type.
 
-Context {disp1 disp2 disp3 : unit}.
+Context {disp1 disp2 disp3 : disp_t}.
 
 Local Notation "T * T'" := (type disp3 T T') : type_scope.
 
@@ -9879,7 +9887,7 @@ Import ProdOrder.Exports.
 
 Module DefaultProdOrder.
 Section DefaultProdOrder.
-Context {disp1 disp2 : unit}.
+Context {disp1 disp2 : disp_t}.
 
 Canonical prod_porderType (T : porderType disp1) (T' : porderType disp2) :=
   [porderType of T * T' for [porderType of T *p T']].
@@ -9974,7 +9982,7 @@ End DefaultProdOrder.
 Module SigmaOrder.
 Section SigmaOrder.
 
-Context {disp1 disp2 : unit}.
+Context {disp1 disp2 : disp_t}.
 
 Section POrder.
 Variable (T : porderType disp1) (T' : T -> porderType disp2).
@@ -10207,9 +10215,9 @@ Import SigmaOrder.Exports.
 Module ProdLexiOrder.
 Section ProdLexiOrder.
 
-Definition type (disp : unit) (T T' : Type) := (T * T')%type.
+Definition type (disp : disp_t) (T T' : Type) := (T * T')%type.
 
-Context {disp1 disp2 disp3 : unit}.
+Context {disp1 disp2 disp3 : disp_t}.
 
 Local Notation "T * T'" := (type disp3 T T') : type_scope.
 
@@ -10441,7 +10449,7 @@ Import ProdLexiOrder.Exports.
 
 Module DefaultProdLexiOrder.
 Section DefaultProdLexiOrder.
-Context {disp1 disp2 : unit}.
+Context {disp1 disp2 : disp_t}.
 
 Canonical prodlexi_porderType
     (T : porderType disp1) (T' : porderType disp2) :=
@@ -10530,9 +10538,9 @@ End DefaultProdLexiOrder.
 Module SeqProdOrder.
 Section SeqProdOrder.
 
-Definition type (disp : unit) T := seq T.
+Definition type (disp : disp_t) T := seq T.
 
-Context {disp disp' : unit}.
+Context {disp disp' : disp_t}.
 
 Local Notation seq := (type disp').
 
@@ -10710,7 +10718,7 @@ Import SeqProdOrder.Exports.
 
 Module DefaultSeqProdOrder.
 Section DefaultSeqProdOrder.
-Context {disp : unit}.
+Context {disp : disp_t}.
 
 Canonical seqprod_porderType (T : porderType disp) :=
   [porderType of seq T for [porderType of seqprod T]].
@@ -10744,9 +10752,9 @@ End DefaultSeqProdOrder.
 Module SeqLexiOrder.
 Section SeqLexiOrder.
 
-Definition type (disp : unit) T := seq T.
+Definition type (disp : disp_t) T := seq T.
 
-Context {disp disp' : unit}.
+Context {disp disp' : disp_t}.
 
 Local Notation seq := (type disp').
 
@@ -10922,7 +10930,7 @@ Import SeqLexiOrder.Exports.
 
 Module DefaultSeqLexiOrder.
 Section DefaultSeqLexiOrder.
-Context {disp : unit}.
+Context {disp : disp_t}.
 
 Canonical seqlexi_porderType (T : porderType disp) :=
   [porderType of seq T for [porderType of seqlexi T]].
@@ -10959,9 +10967,9 @@ Import DefaultSeqProdOrder.
 
 Section TupleProdOrder.
 
-Definition type (disp : unit) n T := n.-tuple T.
+Definition type (disp : disp_t) n T := n.-tuple T.
 
-Context {disp disp' : unit}.
+Context {disp disp' : disp_t}.
 Local Notation "n .-tuple" := (type disp' n) : type_scope.
 
 Section Basics.
@@ -11306,7 +11314,7 @@ Import TupleProdOrder.Exports.
 
 Module DefaultTupleProdOrder.
 Section DefaultTupleProdOrder.
-Context {disp : unit}.
+Context {disp : disp_t}.
 
 Canonical tprod_porderType n (T : porderType disp) :=
   [porderType of n.-tuple T for [porderType of n.-tupleprod T]].
@@ -11394,9 +11402,9 @@ Module TupleLexiOrder.
 Section TupleLexiOrder.
 Import DefaultSeqLexiOrder.
 
-Definition type (disp : unit) n T := n.-tuple T.
+Definition type (disp : disp_t) n T := n.-tuple T.
 
-Context {disp disp' : unit}.
+Context {disp disp' : disp_t}.
 Local Notation "n .-tuple" := (type disp' n) : type_scope.
 
 Section Basics.
@@ -11638,7 +11646,7 @@ Import TupleLexiOrder.Exports.
 
 Module DefaultTupleLexiOrder.
 Section DefaultTupleLexiOrder.
-Context {disp : unit}.
+Context {disp : disp_t}.
 
 Canonical tlexi_porderType n (T : porderType disp) :=
   [porderType of n.-tuple T for [porderType of n.-tuplelexi T]].
@@ -11721,11 +11729,11 @@ End DefaultTupleLexiOrder.
 Module SetSubsetOrder.
 Section SetSubsetOrder.
 
-Definition type (disp : unit) (T : finType) := {set T}.
-Definition type_of (disp : unit) (T : finType) of phant T := type disp T.
+Definition type (disp : disp_t) (T : finType) := {set T}.
+Definition type_of (disp : disp_t) (T : finType) of phant T := type disp T.
 Identity Coercion type_of_type_of : type_of >-> type.
 
-Context {disp : unit} {T : finType}.
+Context {disp : disp_t} {T : finType}.
 Local Notation "{ 'subset' T }" := (type_of disp (Phant T)).
 Implicit Type (A B C : {subset T}).
 
@@ -11742,7 +11750,7 @@ Definition t_distrLatticeMixin :=
   DistrMeetJoinMixin le_def (fun _ _ => erefl _) (@setIC _) (@setUC _)
                 (@setIA _) (@setUA _) setKUC setKIC (@setIUl _) (@setIid _).
 
-Lemma subset_display : unit. Proof. exact: tt. Qed.
+Lemma subset_display : disp_t. Proof. exact: {| d1 := tt; d2 := tt |}. Qed.
 
 Canonical eqType := [eqType of {subset T}].
 Canonical choiceType := [choiceType of {subset T}].
@@ -11879,7 +11887,7 @@ Export SetSubsetOrder.Exports.
 
 Module DefaultSetSubsetOrder.
 Section DefaultSetSubsetOrder.
-Context {disp : unit}.
+Context {disp : disp_t}.
 
 Canonical subset_porderType (T : finType) :=
   [porderType of {set T} for [porderType of {subset T}]].
@@ -11933,7 +11941,7 @@ End DefaultSetSubsetOrder.
 Notation enum A := (sort <=%O (enum A)).
 
 Section Enum.
-Variables (d : unit) (T : finPOrderType d).
+Variables (d : disp_t) (T : finPOrderType d).
 
 Lemma cardE (A : {pred T}) : #|A| = size (enum A).
 Proof. by rewrite size_sort cardE. Qed.
@@ -12042,7 +12050,7 @@ Qed.
 Module Import EnumVal.
 Section EnumVal.
 Import OrdinalOrder.Exports.
-Variables (d : unit) (T : finPOrderType d).
+Variables (d : disp_t) (T : finPOrderType d).
 Implicit Types (x : T) (A : {pred T}).
 
 Definition enum_rank_in x0 A (Ax0 : x0 \in A) x :=

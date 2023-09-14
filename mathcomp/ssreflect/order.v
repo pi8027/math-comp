@@ -27,7 +27,7 @@ From mathcomp Require Import finset.
 (*                                                                            *)
 (* * Interfaces                                                               *)
 (* Before providing the list of interfaces, a word is necessary about         *)
-(*"displays". Each generic partial order has, as a first argument, a display  *)
+(* "displays". Each generic partial order has, as a first argument, a display *)
 (* to control the printing of notations. For example, when m and n are of     *)
 (* type natdvd (an alias of nat), (Order.le m n) is displayed m %| n; natdvd  *)
 (* is associated to the display dvd_display. Instantiating d with tt or an    *)
@@ -1061,7 +1061,48 @@ Reserved Notation "'{' 'tblmorphism' U '->' V '}'"
 
 Module Order.
 
-HB.mixin Record isPOrder (d : unit) T of Equality T := {
+Set Primitive Projections.
+Record disp_t := Disp {d1 : unit; d2 : unit}.
+Unset Primitive Projections.
+
+Definition disp_tt := {| d1 := tt; d2 := tt |}.
+
+#[key="T", primitive]
+HB.mixin Record isDuallyPOrder (d : disp_t) T of Equality T := {
+  le       : rel T;
+  lt       : rel T;
+  lt_def   : forall x y, lt x y = (y != x) && (le x y);
+  gt_def   : forall x y, lt y x = (y != x) && (le y x);
+  le_refl  : reflexive     le;
+  le_anti  : antisymmetric le;
+  ge_anti  : antisymmetric (fun x y => le y x);
+  le_trans : transitive    le;
+}.
+
+#[short(type="porderType"), primitive_class]
+HB.structure Definition POrder (d : disp_t) :=
+  { T of Choice T & isDuallyPOrder d T }.
+
+#[key="T", primitive]
+HB.mixin Record hasBottom d T of POrder d T := {
+  bottom : T;
+  le0x : forall x, le bottom x;
+}.
+
+#[key="T", primitive]
+HB.mixin Record hasTop d T of POrder d T := {
+  top : T;
+  lex1 : forall x, le x top;
+}.
+
+#[short(type="bPOrderType"), primitive_class]
+HB.structure Definition BPOrder d := { T of hasBottom d T & POrder d T }.
+#[short(type="tPOrderType"), primitive_class]
+HB.structure Definition TPOrder d := { T of hasTop d T & POrder d T }.
+#[short(type="tbPOrderType"), primitive_class]
+HB.structure Definition TBPOrder d := { T of hasTop d T & BPOrder d T }.
+
+HB.factory Record isPOrder (d : disp_t) T of Equality T := {
   le       : rel T;
   lt       : rel T;
   lt_def   : forall x y, lt x y = (y != x) && (le x y);
@@ -1070,44 +1111,54 @@ HB.mixin Record isPOrder (d : unit) T of Equality T := {
   le_trans : transitive    le;
 }.
 
-#[short(type="porderType")]
-HB.structure Definition POrder (d : unit) :=
-  { T of Choice T & isPOrder d T }.
+HB.builders Context d T of isPOrder d T.
 
-HB.factory Record Le_isPOrder (d : unit) T of Equality T := {
+Fact gt_def x y : lt y x = (y != x) && (le y x).
+Proof. by rewrite lt_def eq_sym. Qed.
+
+Fact ge_anti : antisymmetric (fun x y => le y x).
+Proof. by move=> ? ? /le_anti ->. Qed.
+
+HB.instance Definition _ := @isDuallyPOrder.Build d T
+  le lt lt_def gt_def le_refl le_anti ge_anti le_trans.
+
+HB.end.
+
+HB.factory Record Le_isPOrder (d : disp_t) T of Equality T := {
   le       : rel T;
   le_refl  : reflexive     le;
   le_anti  : antisymmetric le;
   le_trans : transitive    le;
 }.
 
-HB.builders Context (d : unit) T of Le_isPOrder d T.
+HB.builders Context d T of Le_isPOrder d T.
 (* TODO: print nice error message when keyed type is not provided *)
 HB.instance Definition _ := @isPOrder.Build d T
   le _ (fun _ _ => erefl) le_refl le_anti le_trans.
 HB.end.
 
-HB.factory Record LtLe_isPOrder (d : unit) T of Equality T := {
+HB.factory Record LtLe_isPOrder (d : disp_t) T of Equality T := {
   le : rel T;
   lt : rel T;
   le_def   : forall x y, le x y = (x == y) || lt x y;
   lt_irr   : irreflexive lt;
   lt_trans : transitive lt;
 }.
-HB.builders Context (d : unit) T of LtLe_isPOrder d T.
+
+HB.builders Context d T of LtLe_isPOrder d T.
 
 Let le_refl : reflexive le. Proof. by move=> x; rewrite le_def eqxx. Qed.
 
 Let le_anti : antisymmetric le.
 Proof.
-move=> x y; rewrite !le_def [y == _]eq_sym.
-have [//|neq_xy/=] := eqVneq x y => /andP[xy yx].
+move=> x y; rewrite !le_def.
+have [//|_/=] := eqVneq x y => /andP[xy yx].
 by have := lt_trans xy yx; rewrite lt_irr.
 Qed.
 
 Let le_trans : transitive le.
 Proof.
-move=> y x z; rewrite !le_def; case: (eqVneq x y) => [->|]//= neq_xy.
+move=> y x z; rewrite !le_def; have [->|_]//= := eqVneq x y.
 by case: (eqVneq y z) => /= [<- ->|_ /lt_trans yx /yx ->]; rewrite orbT.
 Qed.
 
@@ -1119,13 +1170,13 @@ HB.instance Definition _ := @isPOrder.Build d T
 
 HB.end.
 
-HB.factory Record Lt_isPOrder (d : unit) T of Equality T := {
+HB.factory Record Lt_isPOrder (d : disp_t) T of Equality T := {
   lt       : rel T;
   lt_irr   : irreflexive lt;
   lt_trans : transitive  lt;
 }.
-#[key="T"]
-HB.builders Context (d : unit) (T : Type) of Lt_isPOrder d T.
+
+HB.builders Context d T of Lt_isPOrder d T.
 HB.instance Definition _ := @LtLe_isPOrder.Build d T
   _ lt (fun _ _ => erefl) lt_irr lt_trans.
 HB.end.
@@ -1152,7 +1203,7 @@ HB.export POrderExports.
 
 Section POrderDef.
 
-Variable (disp : unit) (T : porderType disp).
+Variable (disp : disp_t) (T : porderType disp).
 
 Local Notation "x <= y" := (le x y) : order_scope.
 Local Notation "x < y" := (lt x y) : order_scope.
@@ -1205,7 +1256,7 @@ Variant incompare (x y : T) :
     x x x x true true true true false false true true.
 
 Definition arg_min {I : finType} := @extremum T I le.
-Definition arg_max {I : finType}  := @extremum T I ge.
+Definition arg_max {I : finType} := @extremum T I ge.
 
 (* Lifted min/max operations. *)
 Section LiftedPOrder.
@@ -1314,6 +1365,11 @@ Notation leRHS := (X in (_ <= X)%O)%pattern.
 Notation ltLHS := (X in (X < _)%O)%pattern.
 Notation ltRHS := (X in (_ < X)%O)%pattern.
 
+Notation "0%O" := bottom (only parsing).  (* deprecated in 1.17.0 *)
+Notation "\bot" := bottom : order_scope.
+Notation "1%O" := top (only parsing).  (* deprecated in 1.17.0 *)
+Notation "\top" := top : order_scope.
+
 End POSyntax.
 HB.export POSyntax.
 
@@ -1322,30 +1378,68 @@ Coercion le_of_leif : leif >-> is_true.
 End POCoercions.
 HB.export POCoercions.
 
-(* HB.mixin Record POrder_isJoinSemiLattice *)
-(*     d (T : indexed Type) of POrder d T := { *)
-(*   join : T -> T -> T; *)
-(*   joinC : commutative join; *)
-(*   joinA : associative join; *)
-(*   le_defU : forall x y, (x <= y) = (join x y == y); *)
-(* }. *)
-(* #[short(type="joinSemiLatticeType")] *)
-(* HB.structure Definition JoinSemiLattice d := *)
-(*   { T of POrder_isJoinSemiLattice d T & POrder d T }. *)
+#[key="T", primitive]
+HB.mixin Record POrder_isMeetSemilattice d T of POrder d T := {
+  meet : T -> T -> T;
+  meetC : commutative meet;
+  meetA : associative meet;
+  leEmeet : forall x y, (x <= y) = (meet x y == x);
+}.
 
-(* HB.mixin Record POrder_isMeetSemiLattice *)
-(*     d (T : indexed Type) of POrder d T := { *)
-(*   meet : T -> T -> T; *)
-(*   meetC : commutative meet; *)
-(*   meetA : associative meet; *)
-(*   le_def : forall x y, (x <= y) = (meet x y == x); *)
-(* }. *)
-(* #[short(type="meetSemiLatticeType")] *)
-(* HB.structure Definition MeetSemiLattice d := *)
-(*   { T of POrder_isMeetSemiLattice d T & POrder d T }. *)
+#[key="T", primitive]
+HB.mixin Record POrder_isJoinSemilattice d T of POrder d T := {
+  join : T -> T -> T;
+  joinC : commutative join;
+  joinA : associative join;
+  leEjoin : forall x y, (y <= x) = (join x y == x);
+}.
 
-#[key="T"]
-HB.mixin Record POrder_isLattice d (T : Type) of POrder d T := {
+#[short(type="meetSemilatticeType"), primitive_class]
+HB.structure Definition MeetSemilattice d :=
+  { T of POrder d T & POrder_isMeetSemilattice d T }.
+
+#[short(type="bMeetSemilatticeType"), primitive_class]
+HB.structure Definition BMeetSemilattice d :=
+  { T of MeetSemilattice d T & hasBottom d T }.
+
+#[short(type="tMeetSemilatticeType"), primitive_class]
+HB.structure Definition TMeetSemilattice d :=
+  { T of MeetSemilattice d T & hasTop d T }.
+
+#[short(type="tbMeetSemilatticeType"), primitive_class]
+HB.structure Definition TBMeetSemilattice d :=
+  { T of BMeetSemilattice d T & hasTop d T }.
+
+#[short(type="joinSemilatticeType"), primitive_class]
+HB.structure Definition JoinSemilattice d :=
+  { T of POrder d T & POrder_isJoinSemilattice d T }.
+
+#[short(type="bJoinSemilatticeType"), primitive_class]
+HB.structure Definition BJoinSemilattice d :=
+  { T of JoinSemilattice d T & hasBottom d T }.
+
+#[short(type="tJoinSemilatticeType"), primitive_class]
+HB.structure Definition TJoinSemilattice d :=
+  { T of JoinSemilattice d T & hasTop d T }.
+
+#[short(type="tbJoinSemilatticeType"), primitive_class]
+HB.structure Definition TBJoinSemilattice d :=
+  { T of BJoinSemilattice d T & hasTop d T }.
+
+#[short(type="latticeType"), primitive_class]
+HB.structure Definition Lattice d :=
+  { T of JoinSemilattice d T & POrder_isMeetSemilattice d T }.
+
+#[short(type="bLatticeType"), primitive_class]
+HB.structure Definition BLattice d := { T of Lattice d T & hasBottom d T }.
+
+#[short(type="tLatticeType"), primitive_class]
+HB.structure Definition TLattice d := { T of Lattice d T & hasTop d T }.
+
+#[short(type="tbLatticeType"), primitive_class]
+HB.structure Definition TBLattice d := { T of BLattice d T & hasTop d T }.
+
+HB.factory Record POrder_isLattice d (T : Type) of POrder d T := {
   meet : T -> T -> T;
   join : T -> T -> T;
   meetC : commutative meet;
@@ -1356,20 +1450,22 @@ HB.mixin Record POrder_isLattice d (T : Type) of POrder d T := {
   meetKU : forall y x, join x (meet x y) = x;
   leEmeet : forall x y, (x <= y) = (meet x y == x);
 }.
-(* HB.builders Context d T of POrder_isLattice d T. *)
 
-(* Let le_defU : forall x y, (x <= y) = (join x y == y). *)
-(* Proof. Admitted. *)
+HB.builders Context d T of POrder_isLattice d T.
 
-(* HB.instance Definition _ := @POrder_isMeetSemiLattice.Build d T *)
-(*   meet meetC meetA le_def. *)
-(* HB.instance Definition _ := @POrder_isJoinSemiLattice.Build d T *)
-(*   join joinC joinA le_defU. *)
-(* HB.end. *)
+Lemma leEjoin x y : (y <= x) = (join x y == x).
+Proof.
+rewrite leEmeet; apply/eqP/eqP => <-.
+  by rewrite meetC meetKU.
+by rewrite joinC joinKI.
+Qed.
 
-#[short(type="latticeType")]
-HB.structure Definition Lattice d :=
-  { T of POrder_isLattice d T & POrder d T }.
+HB.instance Definition _ := @POrder_isMeetSemilattice.Build d T
+  meet meetC meetA leEmeet.
+HB.instance Definition _ := @POrder_isJoinSemilattice.Build d T
+  join joinC joinA leEjoin.
+
+HB.end.
 
 Module LatticeExports.
 #[deprecated(since="mathcomp 2.0.0", note="Use Lattice.clone instead.")]
@@ -1389,8 +1485,18 @@ Notation "[ 'latticeType' 'of' T 'with' disp ]" := (Lattice.clone disp T%type _)
 End LatticeExports.
 HB.export LatticeExports.
 
+Module BLatticeExports.
+#[deprecated(since="mathcomp 2.0.0", note="Use BLattice.clone instead.")]
+Notation "[ 'bLatticeType' 'of' T 'for' cT ]" := (BLattice.clone _ T%type cT)
+  (at level 0, format "[ 'bLatticeType'  'of'  T  'for'  cT ]") : form_scope.
+#[deprecated(since="mathcomp 2.0.0", note="Use BLattice.clone instead.")]
+Notation "[ 'bLatticeType' 'of' T ]" := (BLattice.clone _ T%type _)
+  (at level 0, format "[ 'bLatticeType'  'of'  T ]") : form_scope.
+End BLatticeExports.
+HB.export BLatticeExports.
+
 Section LatticeDef.
-Context {disp : unit} {T : latticeType disp}.
+Context {disp : disp_t} {T : latticeType disp}.
 
 Variant lel_xor_gt (x y : T) :
   T -> T -> T -> T -> T -> T -> T -> T -> bool -> bool -> Set :=
@@ -1435,29 +1541,7 @@ Notation "x `|` y" := (join x y) : order_scope.
 End LatticeSyntax.
 HB.export LatticeSyntax.
 
-#[key="T"]
-HB.mixin Record hasBottom d (T : Type) of POrder d T := {
-  bottom : T;
-  le0x : forall x, bottom <= x;
-}.
-#[short(type="bPOrderType")]
-HB.structure Definition BPOrder d := { T of hasBottom d T & POrder d T }.
-#[short(type="bLatticeType")]
-HB.structure Definition BLattice d := { T of hasBottom d T & Lattice d T }.
-
-Module BLatticeExports.
-#[deprecated(since="mathcomp 2.0.0", note="Use BLattice.clone instead.")]
-Notation "[ 'bLatticeType' 'of' T 'for' cT ]" := (BLattice.clone _ T%type cT)
-  (at level 0, format "[ 'bLatticeType'  'of'  T  'for'  cT ]") : form_scope.
-#[deprecated(since="mathcomp 2.0.0", note="Use BLattice.clone instead.")]
-Notation "[ 'bLatticeType' 'of' T ]" := (BLattice.clone _ T%type _)
-  (at level 0, format "[ 'bLatticeType'  'of'  T ]") : form_scope.
-End BLatticeExports.
-HB.export BLatticeExports.
-
 Module BLatticeSyntax.
-Notation "0%O" := bottom (only parsing).  (* deprecated in 1.17.0 *)
-Notation "\bot" := bottom : order_scope.
 
 Notation "\join_ ( i <- r | P ) F" :=
   (\big[@join _ _ / \bot]_(i <- r | P%B) F%O) : order_scope.
@@ -1487,24 +1571,7 @@ Notation "\join_ ( i 'in' A ) F" :=
 End BLatticeSyntax.
 HB.export BLatticeSyntax.
 
-#[key="T"]
-HB.mixin Record hasTop d (T : Type) of POrder d T := {
-  top : T;
-  lex1 : forall x, x <= top;
-}.
-#[short(type="tPOrderType")]
-HB.structure Definition TPOrder d := { T of hasTop d T & POrder d T }.
-#[short(type="tbPOrderType")]
-HB.structure Definition TBPOrder d := { T of hasTop d T & BPOrder d T }.
-#[short(type="tLatticeType")]
-HB.structure Definition TLattice d := { T of hasTop d T & Lattice d T }.
-#[short(type="tbLatticeType")]
-HB.structure Definition TBLattice d := { T of BLattice d T & TLattice d T }.
-
 Module TLatticeSyntax.
-
-Notation "1%O" := top (only parsing).  (* deprecated in 1.17.0 *)
-Notation "\top" := top : order_scope.
 
 Notation "\meet_ ( i <- r | P ) F" :=
   (\big[meet / \top]_(i <- r | P%B) F%O) : order_scope.
@@ -1534,17 +1601,49 @@ Notation "\meet_ ( i 'in' A ) F" :=
 End TLatticeSyntax.
 HB.export TLatticeSyntax.
 
-#[key="T"]
-HB.mixin Record Lattice_Meet_isDistrLattice d (T : Type) of Lattice d T := {
+#[key="T", primitive]
+HB.mixin Record Lattice_isDistributive d (T : Type) of Lattice d T := {
+  meetUl : @left_distributive T T meet join;
+  joinIl : @left_distributive T T join meet; (* dual of meetUl *)
+}.
+
+#[short(type="distrLatticeType"), primitive_class]
+HB.structure Definition DistrLattice d :=
+  { T of Lattice_isDistributive d T & Lattice d T }.
+
+#[short(type="bDistrLatticeType"), primitive_class]
+HB.structure Definition BDistrLattice d :=
+  { T of DistrLattice d T & hasBottom d T }.
+
+#[short(type="tDistrLatticeType"), primitive_class]
+HB.structure Definition TDistrLattice d :=
+  { T of DistrLattice d T & hasTop d T }.
+
+#[short(type="tbDistrLatticeType"), primitive_class]
+HB.structure Definition TBDistrLattice d :=
+  { T of BDistrLattice d T  & hasTop d T }.
+
+HB.factory Record Lattice_Meet_isDistrLattice d T of Lattice d T := {
   meetUl : @left_distributive T T meet join;
 }.
-#[short(type="distrLatticeType")]
-HB.structure Definition DistrLattice d :=
-  { T of Lattice_Meet_isDistrLattice d T & Lattice d T }.
 
-#[short(type="bDistrLatticeType")]
-HB.structure Definition BDistrLattice d :=
-  { T of hasBottom d T & DistrLattice d T}.
+HB.builders Context d T of Lattice_Meet_isDistrLattice d T.
+
+Let meetUr : right_distributive (@meet _ T) (@join _ T).
+Proof.
+move=> x y z.
+Check meetC.
+rewrite ![x `&` _]meetC. (* FIXME *)
+by rewrite [LHS]meetUl.
+Qed.
+
+Let joinIl : left_distributive (@join _ T) (@meet _ T).
+Proof.
+Admitted.
+
+HB.instance Definition _ := Lattice_isDistributive.Build d T meetUl joinIl.
+
+HB.end.
 
 Module BDistrLatticeExports.
 #[deprecated(since="mathcomp 2.0.0", note="Use BDistrLattice.clone instead.")]
@@ -1553,10 +1652,6 @@ Notation "[ 'bDistrLatticeType' 'of' T ]" := (BDistrLattice.clone _ T%type _)
 End BDistrLatticeExports.
 HB.export BDistrLatticeExports.
 
-#[short(type="tbDistrLatticeType")]
-HB.structure Definition TBDistrLattice d :=
-  { T of TBLattice d T & BDistrLattice d T }.
-
 Module TBDistrLatticeExports.
 #[deprecated(since="mathcomp 2.0.0", note="Use TBDistrLattice.clone instead.")]
 Notation "[ 'tbDistrLatticeType' 'of' T ]" := (TBDistrLattice.clone _ T%type _)
@@ -1564,54 +1659,93 @@ Notation "[ 'tbDistrLatticeType' 'of' T ]" := (TBDistrLattice.clone _ T%type _)
 End TBDistrLatticeExports.
 HB.export TBDistrLatticeExports.
 
-#[key="T"]
-HB.mixin Record hasRelativeComplement d (T : Type) of BDistrLattice d T := {
-  diff   : T -> T -> T;
-  diffKI : forall x y, y `&` diff x y = bottom;
-  joinIB : forall x y, (x `&` y) `|` diff x y = x
+#[key="T", primitive]
+HB.mixin Record DistrLattice_isTotal d T of DistrLattice d T :=
+  { le_total : total (<=%O : rel T) }.
+
+#[short(type="orderType"), primitive_class]
+HB.structure Definition Total d :=
+  { T of DistrLattice_isTotal d T & DistrLattice d T }.
+
+#[short(type="bOrderType"), primitive_class]
+HB.structure Definition BTotal d := { T of Total d T & hasBottom d T }.
+
+#[short(type="tOrderType"), primitive_class]
+HB.structure Definition TTotal d := { T of Total d T & hasTop d T }.
+
+#[short(type="tbOrderType"), primitive_class]
+HB.structure Definition TBTotal d := { T of BTotal d T & hasTop d T }.
+
+#[key="T", primitive]
+HB.mixin Record hasRelativeComplement d T of DistrLattice d T := {
+  rcompl : T -> T -> T -> T;
+  rcomplKI : forall a b c, a <= c -> c <= b -> c `&` rcompl a b c = a;
+  rcomplKU : forall a b c, a <= c -> c <= b -> c `|` rcompl a b c = b;
 }.
 
-#[short(type="cbDistrLatticeType")]
+#[short(type="cDistrLatticeType"), primitive_class]
+HB.structure Definition CDistrLattice d :=
+  { T of DistrLattice d T & hasRelativeComplement d T }.
+
+#[key="T", primitive]
+HB.mixin Record hasSectionalComplement d T
+         of CDistrLattice d T & hasBottom d T := {
+  diff : T -> T -> T;
+  diffE : forall x y, diff x y = rcompl (\bot : T) x y; (* FIXME? *)
+}.
+
+#[short(type="cbDistrLatticeType"), primitive_class]
 HB.structure Definition CBDistrLattice d :=
-  { T of hasRelativeComplement d T & BDistrLattice d T }.
+  { T of CDistrLattice d T & hasBottom d T & hasSectionalComplement d T }.
+
+#[key="T", primitive]
+HB.mixin Record hasDualSectionalComplement d T
+         of CDistrLattice d T & hasTop d T := {
+  codiff : T -> T -> T;
+  codiffE : forall x y, codiff x y = rcompl x \top y;
+}.
+
+#[short(type="ctDistrLatticeType"), primitive_class]
+HB.structure Definition CTDistrLattice d :=
+  { T of CDistrLattice d T & hasTop d T & hasDualSectionalComplement d T }.
 
 #[deprecated(since="mathcomp 2.0.0", note="Use diff instead.")]
 Notation sub := diff.
-#[deprecated(since="mathcomp 2.0.0", note="Use diffKI instead.")]
-Notation subKI := diffKI.
 
 Module Import CBDistrLatticeSyntax.
 Notation "x `\` y" := (diff x y) : order_scope.
 End CBDistrLatticeSyntax.
 
-#[key="T"]
-HB.mixin Record hasComplement d (T : Type) of
+#[key="T", primitive]
+HB.mixin Record hasComplement d T of
          TBDistrLattice d T & CBDistrLattice d T := {
   compl : T -> T;
-  complE : forall x : T, compl x = (top : T) `\` x (* FIXME? *)
+  comlpE : forall x : T, compl x = rcompl (\bot : T) \top x; (* FIXME? *)
 }.
 
-#[short(type="ctbDistrLatticeType")]
+#[short(type="ctbDistrLatticeType"), primitive_class]
 HB.structure Definition CTBDistrLattice d :=
-  { T of hasComplement d T & TBDistrLattice d T & CBDistrLattice d T }.
+  { T of CBDistrLattice d T & CTDistrLattice d T & hasComplement d T }.
 
 Module Import CTBDistrLatticeSyntax.
 Notation "~` A" := (compl A) : order_scope.
 End CTBDistrLatticeSyntax.
 
-HB.mixin Record DistrLattice_isTotal d T of DistrLattice d T :=
-  { le_total : total (<=%O : rel T) }.
-
-#[short(type="orderType")]
-HB.structure Definition Total d :=
-  { T of DistrLattice_isTotal d T & DistrLattice d T }.
-
 (**********)
 (* FINITE *)
 (**********)
 
-#[short(type="finPOrderType")]
+#[short(type="finPOrderType"), primitive_class]
 HB.structure Definition FinPOrder d := { T of Finite T & POrder d T }.
+
+#[short(type="finBPOrderType"), primitive_class]
+HB.structure Definition FinBPOrder d := { T of FinPOrder d T & hasBottom d T }.
+
+#[short(type="finTPOrderType"), primitive_class]
+HB.structure Definition FinTPOrder d := { T of FinPOrder d T & hasTop d T }.
+
+#[short(type="finTBPOrderType"), primitive_class]
+HB.structure Definition FinTBPOrder d := { T of FinBPOrder d T & hasTop d T }.
 
 Module FinPOrderExports.
 #[deprecated(since="mathcomp 2.0.0", note="Use BLattice.clone instead.")]
@@ -1620,8 +1754,27 @@ Notation "[ 'finPOrderType' 'of' T ]" := (FinPOrder.clone _ T%type _ )
 End FinPOrderExports.
 HB.export FinPOrderExports.
 
-#[short(type="finLatticeType")]
-HB.structure Definition FinLattice d := { T of Finite T & TBLattice d T }. (* FIXME *)
+#[short(type="finMeetSemilatticeType"), primitive_class]
+HB.structure Definition FinMeetSemilattice d :=
+  { T of Finite T & MeetSemilattice d T }.
+
+#[short(type="finBMeetSemilatticeType"), primitive_class]
+HB.structure Definition FinBMeetSemilattice d :=
+  { T of Finite T & BMeetSemilattice d T }.
+
+#[short(type="finJoinSemilatticeType"), primitive_class]
+HB.structure Definition FinJoinSemilattice d :=
+  { T of Finite T & JoinSemilattice d T }.
+
+#[short(type="finTJoinSemilatticeType"), primitive_class]
+HB.structure Definition FinTJoinSemilattice d :=
+  { T of Finite T & TJoinSemilattice d T }.
+
+#[short(type="finLatticeType"), primitive_class]
+HB.structure Definition FinLattice d := { T of Finite T & Lattice d T }.
+
+#[short(type="finTBLatticeType"), primitive_class]
+HB.structure Definition FinTBLattice d := { T of Finite T & TBLattice d T }.
 
 Module FinLatticeExports.
 #[deprecated(since="mathcomp 2.0.0", note="Use FinLattice.clone instead.")]
@@ -1630,8 +1783,12 @@ Notation "[ 'finLatticeType' 'of' T ]" := (FinLattice.clone _ T%type _ )
 End FinLatticeExports.
 HB.export FinLatticeExports.
 
-#[short(type="finDistrLatticeType")]
+#[short(type="finDistrLatticeType"), primitive_class]
 HB.structure Definition FinDistrLattice d :=
+  { T of Finite T & DistrLattice d T }.
+
+#[short(type="finTBDistrLatticeType"), primitive_class]
+HB.structure Definition FinTBDistrLattice d :=
   { T of Finite T & TBDistrLattice d T }.
 
 Module FinDistrLatticeExports.
@@ -1641,8 +1798,25 @@ Notation "[ 'finDistrLatticeType' 'of' T ]" := (FinDistrLattice.clone _ T%type _
 End FinDistrLatticeExports.
 HB.export FinDistrLatticeExports.
 
-#[short(type="finCDistrLatticeType")]
+#[short(type="finOrderType"), primitive_class]
+HB.structure Definition FinTotal d := { T of Finite T & Total d T }.
+
+#[short(type="finTBOrderType"), primitive_class]
+HB.structure Definition FinTBTotal d := { T of Finite T & TBTotal d T }.
+
+Module FinTotalExports.
+#[deprecated(since="mathcomp 2.0.0", note="Use FinTotal.clone instead.")]
+Notation "[ 'finOrderType' 'of' T ]" := (FinTotal.clone _ T%type _ )
+  (at level 0, format "[ 'finOrderType'  'of'  T ]") : form_scope.
+End FinTotalExports.
+HB.export FinTotalExports.
+
+#[short(type="finCDistrLatticeType"), primitive_class]
 HB.structure Definition FinCDistrLattice d :=
+  { T of Finite T & CDistrLattice d T }.
+
+#[short(type="finCTBDistrLatticeType"), primitive_class]
+HB.structure Definition FinCTBDistrLattice d :=
   { T of Finite T & CTBDistrLattice d T }.
 
 Module FinCDistrLatticeExports.
@@ -1652,23 +1826,12 @@ Notation "[ 'finCDistrLatticeType' 'of' T ]" := (FinCDistrLattice.clone _ T%type
 End FinCDistrLatticeExports.
 HB.export FinCDistrLatticeExports.
 
-#[short(type="finOrderType")]
-HB.structure Definition FinTotal d :=
-  { T of Total d T & FinDistrLattice d T }.
-
-Module FinTotalExports.
-#[deprecated(since="mathcomp 2.0.0", note="Use FinTotal.clone instead.")]
-Notation "[ 'finOrderType' 'of' T ]" := (FinTotal.clone _ T%type _ )
-  (at level 0, format "[ 'finOrderType'  'of'  T ]") : form_scope.
-End FinTotalExports.
-HB.export FinTotalExports.
-
 (********)
 (* DUAL *)
 (********)
 
-Definition dual T : Type := T.
-Definition dual_display : unit -> unit. Proof. exact. Qed.
+Definition dual T : Type := let T' := T in T'.
+Definition dual_display (d : disp_t) := {| d1 := d2 d; d2 := d1 d |}.
 
 Notation dual_le := (@le (dual_display _) _).
 Notation dual_lt := (@lt (dual_display _) _).
@@ -1803,6 +1966,114 @@ Notation "\meet^d_ ( i 'in' A ) F" :=
  (\big[meet / \top]_(i in A) F%O) : order_scope.
 
 End DualSyntax.
+
+Module DualOrder.
+
+HB.instance Definition _ (T : eqType) := Equality.on T^d.
+HB.instance Definition _ (T : choiceType) := Choice.on T^d.
+HB.instance Definition _ (T : countType) := Countable.on T^d.
+HB.instance Definition _ (T : finType) := Finite.on T^d.
+
+Section DualPOrder.
+
+Context (d : disp_t) (T : porderType d).
+
+HB.instance Definition _ :=
+  isDuallyPOrder.Build
+    (dual_display d) T^d
+    gt_def lt_def le_refl ge_anti le_anti
+    (fun _ _ _ Hxy Hyz => le_trans Hyz Hxy).
+
+Lemma leEdual (x y : T) : (x <=^d y :> T^d) = (y <= x). Proof. by []. Qed.
+Lemma ltEdual (x y : T) : (x <^d y :> T^d) = (y < x). Proof. by []. Qed.
+
+End DualPOrder.
+
+HB.instance Definition _ d (T : tPOrderType d) :=
+  hasBottom.Build (dual_display d) T^d lex1.
+
+Lemma botEdual d (T : tPOrderType d) : (dual_bottom : T^d) = \top :> T.
+Proof. by []. Qed.
+
+HB.instance Definition _ d (T : bPOrderType d) :=
+  hasTop.Build (dual_display d) T^d le0x.
+
+Lemma topEdual d (T : bPOrderType d) : (dual_top : T^d) = \bot :> T.
+Proof. by []. Qed.
+
+HB.instance Definition _ d (T : tbPOrderType d) := POrder.on T^d.
+HB.instance Definition _ d (T : finPOrderType d) := POrder.on T^d.
+Fail HB.instance Definition _ d (T : finTPOrderType d) := POrder.on T^d.
+Fail HB.instance Definition _ d (T : finBPOrderType d) := POrder.on T^d.
+HB.instance Definition _ d (T : finTBPOrderType d) := POrder.on T^d.
+
+HB.instance Definition _ d (T : joinSemilatticeType d) :=
+  POrder_isMeetSemilattice.Build (dual_display d) T^d joinC joinA leEjoin.
+
+Lemma meetEdual d (T : joinSemilatticeType d) (x y : T) :
+  ((x : T^d) `&^d` y) = (x `|` y).
+Proof. by []. Qed.
+
+HB.instance Definition _ d (T : meetSemilatticeType d) :=
+  POrder_isJoinSemilattice.Build (dual_display d) T^d meetC meetA leEmeet.
+
+Lemma joinEdual d (T : meetSemilatticeType d) (x y : T) :
+  ((x : T^d) `|^d` y) = (x `&` y).
+Proof. by []. Qed.
+
+Fail HB.instance Definition _ d (T : tJoinSemilatticeType d) := POrder.on T^d.
+Fail HB.instance Definition _ d (T : bJoinSemilatticeType d) := POrder.on T^d.
+Fail HB.instance Definition _ d (T : tbJoinSemilatticeType d) := POrder.on T^d.
+
+Fail HB.instance Definition _ d (T : finJoinSemilatticeType d) := POrder.on T^d.
+Fail HB.instance Definition _ d (T : finTJoinSemilatticeType d) :=
+  POrder.on T^d.
+
+Fail HB.instance Definition _ d (T : tMeetSemilatticeType d) := POrder.on T^d.
+Fail HB.instance Definition _ d (T : bMeetSemilatticeType d) := POrder.on T^d.
+Fail HB.instance Definition _ d (T : tbMeetSemilatticeType d) := POrder.on T^d.
+
+Fail HB.instance Definition _ d (T : finMeetSemilatticeType d) := POrder.on T^d.
+Fail HB.instance Definition _ d (T : finBMeetSemilatticeType d) :=
+  POrder.on T^d.
+
+HB.instance Definition _ d (T : latticeType d) := POrder.on T^d.
+Fail HB.instance Definition _ d (T : tLatticeType d) := POrder.on T^d.
+Fail HB.instance Definition _ d (T : bLatticeType d) := POrder.on T^d.
+HB.instance Definition _ d (T : tbLatticeType d) := POrder.on T^d.
+
+HB.instance Definition _ d (T : finLatticeType d) := POrder.on T^d.
+HB.instance Definition _ d (T : finTBLatticeType d) := POrder.on T^d.
+
+HB.instance Definition _ d (T : distrLatticeType d) :=
+  Lattice_isDistributive.Build (dual_display d) T^d joinIl meetUl.
+Fail HB.instance Definition _ d (T : tDistrLatticeType d) := POrder.on T^d.
+Fail HB.instance Definition _ d (T : bDistrLatticeType d) := POrder.on T^d.
+HB.instance Definition _ d (T : tbDistrLatticeType d) := POrder.on T^d.
+
+HB.instance Definition _ d (T : finDistrLatticeType d) := POrder.on T^d.
+HB.instance Definition _ d (T : finTBDistrLatticeType d) := POrder.on T^d.
+
+HB.instance Definition _ d (T : orderType d) :=
+  DistrLattice_isTotal.Build (dual_display d) T^d (fun x y => le_total y x).
+Fail HB.instance Definition _ d (T : tOrderType d) := POrder.on T^d.
+Fail HB.instance Definition _ d (T : bOrderType d) := POrder.on T^d.
+HB.instance Definition _ d (T : tbOrderType d) := POrder.on T^d.
+
+HB.instance Definition _ d (T : finOrderType d) := POrder.on T^d.
+HB.instance Definition _ d (T : finTBOrderType d) := POrder.on T^d.
+
+HB.instance Definition _ d (T : cDistrLatticeType d) :=
+  hasRelativeComplement.Build (dual_display d) T^d
+    (fun a b c Hac Hcb => rcomplKU b a c Hcb Hac)
+    (fun a b c Hac Hcb => rcomplKI b a c Hcb Hac).
+HB.instance Definition _ d (T : ctDistrLatticeType d) :=
+  hasSectionalComplement.Build (dual_display d) T^d codiffE.
+HB.instance Definition _ d (T : cbDistrLatticeType d) :=
+  hasDualSectionalComplement.Build (dual_display d) T^d diffE.
+HB.instance Definition _ d (T : ctbDistrLatticeType d) := POrder.on T^d.
+
+End DualOrder.
 
 (**********)
 (* THEORY *)
@@ -2796,84 +3067,6 @@ Arguments max_idPr {disp T x y}.
 Arguments comparable_min_idPr {disp T x y _}.
 Arguments comparable_max_idPl {disp T x y _}.
 
-Module Import DualPOrder.
-Section DualPOrder.
-
-HB.instance Definition _ (T : eqType) := Equality.on T^d.
-HB.instance Definition _ (T : choiceType) := Choice.on T^d.
-HB.instance Definition _ (T : countType) := Countable.on T^d.
-HB.instance Definition _ (T : finType) := Finite.on T^d.
-
-Context {disp : unit}.
-Variable T : porderType disp.
-
-Lemma dual_lt_def (x y : T) : gt x y = (y != x) && ge x y.
-Proof. by apply: lt_neqAle. Qed.
-
-Fact dual_le_anti : antisymmetric (@ge _ T).
-Proof. by move=> x y /andP [xy yx]; apply/le_anti/andP; split. Qed.
-
-HB.instance Definition _ :=
-  isPOrder.Build
-    (dual_display disp) (T^d)
-    dual_lt_def lexx dual_le_anti
-    (fun y z x zy yx => @le_trans _ _ y x z yx zy).
-
-Lemma leEdual (x y : T) : (x <=^d y :> T^d) = (y <= x). Proof. by []. Qed.
-Lemma ltEdual (x y : T) : (x <^d y :> T^d) = (y < x). Proof. by []. Qed.
-
-End DualPOrder.
-
-HB.instance Definition _ d (T : finPOrderType d) := FinPOrder.on T^d.
-
-End DualPOrder.
-
-Module Import DualLattice.
-Section DualLattice.
-Context {disp : unit}.
-Variable L : latticeType disp.
-Implicit Types (x y : L).
-
-Lemma meetC : commutative (@meet _ L). Proof. exact: meetC. Qed.
-Lemma joinC : commutative (@join _ L). Proof. exact: joinC. Qed.
-
-Lemma meetA : associative (@meet _ L). Proof. exact: meetA. Qed.
-Lemma joinA : associative (@join _ L). Proof. exact: joinA. Qed.
-
-Lemma joinKI y x : x `&` (x `|` y) = x. Proof. exact: joinKI. Qed.
-Lemma meetKU y x : x `|` (x `&` y) = x. Proof. exact: meetKU. Qed.
-
-Lemma joinKIC y x : x `&` (y `|` x) = x. Proof. by rewrite joinC joinKI. Qed.
-Lemma meetKUC y x : x `|` (y `&` x) = x. Proof. by rewrite meetC meetKU. Qed.
-
-Lemma meetUK x y : (x `&` y) `|` y = y.
-Proof. by rewrite joinC meetC meetKU. Qed.
-Lemma joinIK x y : (x `|` y) `&` y = y.
-Proof. by rewrite joinC meetC joinKI. Qed.
-
-Lemma meetUKC x y : (y `&` x) `|` y = y. Proof. by rewrite meetC meetUK. Qed.
-Lemma joinIKC x y : (y `|` x) `&` y = y. Proof. by rewrite joinC joinIK. Qed.
-
-Lemma leEmeet x y : (x <= y) = (x `&` y == x).
-Proof. exact: leEmeet. Qed.
-
-Lemma leEjoin x y : (x <= y) = (x `|` y == y).
-Proof. by rewrite leEmeet; apply/eqP/eqP => <-; rewrite (joinKI, meetUK). Qed.
-
-Fact dual_leEmeet (x y : L^d) : (x <= y) = (x `|` y == x).
-Proof. by rewrite [LHS]leEjoin joinC. Qed.
-
-HB.instance Definition _ :=
-  @POrder_isLattice.Build
-    (dual_display disp) L^d
-    join meet joinC meetC joinA meetA meetKU joinKI dual_leEmeet.
-
-Lemma meetEdual x y : ((x : L^d) `&^d` y) = (x `|` y). Proof. by []. Qed.
-Lemma joinEdual x y : ((x : L^d) `|^d` y) = (x `&` y). Proof. by []. Qed.
-
-End DualLattice.
-End DualLattice.
-
 Module Import LatticeTheoryMeet.
 Section LatticeTheoryMeet.
 Context {disp : unit} {L : latticeType disp}.
@@ -3830,22 +4023,6 @@ End BLatticeTheory.
 
 End BLatticeTheory.
 
-Module Import DualTBLattice.
-Section DualTBLattice.
-Context {disp : unit} {L : tbLatticeType disp}.
-
-HB.instance Definition _ := hasBottom.Build _ L^d lex1.
-(* FIXME: BUG? *)
-(* HB.instance Definition _ := TBLattice.on L^d. *)
-HB.instance Definition _ := hasTop.Build _ L^d (@le0x _ L).
-
-Lemma botEdual : (dual_bottom : L^d) = \top :> L. Proof. by []. Qed.
-Lemma topEdual : (dual_top : L^d) = \bot :> L. Proof. by []. Qed.
-
-End DualTBLattice.
-
-HB.instance Definition _ d (T : finLatticeType d) := FinLattice.on T^d.
-
 End DualTBLattice.
 
 Module Import TLatticeTheory.
@@ -3999,20 +4176,6 @@ Qed.
 
 End BDistrLatticeTheory.
 End BDistrLatticeTheory.
-
-Module Import DualTBDistrLattice.
-Section DualTBDistrLattice.
-Context {disp : unit} {L : tbDistrLatticeType disp}.
-
-HB.instance Definition _ := BDistrLattice.on L^d.
-HB.instance Definition _ := TBDistrLattice.on L^d.
-
-End DualTBDistrLattice.
-
-HB.instance Definition _ d (T : finDistrLatticeType d) :=
-  FinDistrLattice.on T^d.
-
-End DualTBDistrLattice.
 
 Module Import TBDistrLatticeTheory.
 Section TBDistrLatticeTheory.
